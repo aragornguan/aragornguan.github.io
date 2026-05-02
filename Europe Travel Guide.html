@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Travel Itinerary — Italy · Greece · Japan</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --cream:#f4efe3;--cream2:#faf7f0;--navy:#1a2d5a;--gold:#c8a020;
+  --terra:#c45c3a;--panel:#faf8f5;--ocean:#0a3d82;--cherry:#ff9eb5;
+  --label-bg:rgba(4,12,36,0.90);
+}
+html,body{width:100%;height:100%;overflow:hidden;font-family:"Lato",sans-serif;}
+#app{display:flex;flex-direction:column;height:100vh;background:var(--cream);}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:54px;background:var(--navy);border-bottom:2px solid var(--gold);z-index:1001;flex-shrink:0;}
+.logo{font-family:"Playfair Display",serif;font-size:19px;color:#f0ebe0;letter-spacing:3px;}
+.logo span{color:var(--gold);}
+.nav-pills{display:flex;gap:6px;}
+.nav-pill{padding:6px 18px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.55);cursor:pointer;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .22s;background:transparent;user-select:none;}
+.nav-pill:hover{color:white;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);}
+.nav-pill.active{background:rgba(200,160,32,.2);border-color:var(--gold);color:var(--gold);}
+
+/* MAIN TWO-COLUMN */
+#main{flex:1;display:flex;overflow:hidden;}
+
+/* LEFT ITINERARY PANEL */
+#left-panel{width:390px;flex-shrink:0;display:flex;flex-direction:column;background:var(--cream);border-right:1px solid rgba(26,45,90,.14);overflow:hidden;transition:width .32s cubic-bezier(.4,0,.2,1);}
+#left-panel.collapsed{width:0;border-right:none;}
+
+/* Country hero */
+#country-hero{background:var(--navy);color:white;padding:18px 20px 14px;flex-shrink:0;}
+.hero-title{font-family:"Playfair Display",serif;font-size:24px;font-weight:900;color:white;line-height:1.15;margin-bottom:6px;}
+.hero-title .days-num{color:var(--gold);}
+.hero-tagline{font-size:10.5px;color:rgba(255,255,255,.68);letter-spacing:.4px;margin-bottom:11px;line-height:1.55;}
+.hero-badges{display:flex;flex-wrap:wrap;gap:5px;}
+.hero-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 9px;font-size:9.5px;font-weight:700;color:rgba(255,255,255,.85);letter-spacing:.3px;}
+
+/* Day list */
+#day-list{flex:1;overflow-y:auto;padding:6px 0;}
+#day-list::-webkit-scrollbar{width:4px;}
+#day-list::-webkit-scrollbar-thumb{background:rgba(26,45,90,.18);border-radius:2px;}
+
+.day-item{display:flex;align-items:flex-start;gap:10px;padding:9px 16px 9px 14px;border-bottom:1px solid rgba(26,45,90,.06);cursor:pointer;transition:background .15s;}
+.day-item:hover{background:rgba(26,45,90,.04);}
+.day-item.active{background:rgba(200,160,32,.12);border-left:3px solid var(--gold);padding-left:11px;}
+.day-badge{width:33px;height:33px;border-radius:7px;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;line-height:1.1;}
+.day-badge .dn{font-size:10.5px;font-weight:900;color:var(--gold);letter-spacing:.2px;}
+.day-icon{font-size:17px;flex-shrink:0;margin-top:7px;width:20px;text-align:center;}
+.day-content{flex:1;min-width:0;}
+.day-title{font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:2px;line-height:1.3;}
+.day-sub{list-style:none;padding:0;}
+.day-sub li{font-size:10.5px;color:#666;line-height:1.5;padding-left:9px;position:relative;}
+.day-sub li::before{content:"·";position:absolute;left:1px;color:var(--gold);}
+
+/* Highlights */
+#highlights{display:grid;grid-template-columns:1fr 1fr;flex-shrink:0;border-top:2px solid var(--navy);}
+.hl-card{padding:11px 13px;background:var(--cream2);border-right:1px solid rgba(26,45,90,.1);border-bottom:1px solid rgba(26,45,90,.08);}
+.hl-card:nth-child(2n){border-right:none;}
+.hl-icon{font-size:20px;margin-bottom:4px;}
+.hl-title{font-size:10px;font-weight:900;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;}
+.hl-desc{font-size:9.5px;color:#777;line-height:1.4;}
+
+/* MAP */
+#map-wrap{flex:1;position:relative;overflow:hidden;}
+#map{width:100%;height:100%;}
+
+/* DAY MARKERS on map */
+.dm-wrap{display:flex;flex-direction:column;align-items:center;cursor:pointer;transform-origin:50% 100%;transition:transform .18s;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5));}
+.dm-wrap:hover{transform:scale(1.1);}
+.dm-day-badge{background:var(--navy);color:var(--gold);font-size:9px;font-weight:900;letter-spacing:.3px;padding:2px 7px;border-radius:10px;margin-bottom:3px;white-space:nowrap;border:1px solid rgba(200,160,32,.5);}
+.dm-photo{width:56px;height:56px;border-radius:50%;border:3px solid white;box-shadow:0 3px 12px rgba(0,0,0,.55);background-size:cover;background-position:center;transition:background-image .4s;}
+.dm-photo.italy  {background-color:#503020;}
+.dm-photo.greece {background-color:#102050;}
+.dm-photo.japan  {background-color:#400010;}
+.dm-line{width:1.5px;height:7px;background:rgba(255,255,255,.35);margin:0 auto;}
+.dm-dot{width:9px;height:9px;border-radius:50%;border:2.5px solid white;margin:2px auto 0;box-shadow:0 0 8px rgba(255,255,255,.5);}
+.dm-dot.italy  {background:#e06040;}
+.dm-dot.greece {background:#4080e0;}
+.dm-dot.japan  {background:#e00030;}
+.dm-photo.japan.hokkaido{background-color:#103060;}
+.dm-dot.hokkaido{background:#1860d8;}
+.dm-name{font-size:9.5px;font-weight:700;color:white;text-shadow:0 1px 4px rgba(0,0,0,.9);margin-top:2px;white-space:nowrap;text-align:center;}
+
+/* COMPASS */
+#compass{position:absolute;bottom:32px;right:18px;z-index:50;width:76px;height:76px;pointer-events:none;filter:drop-shadow(0 2px 10px rgba(0,0,0,.6));}
+
+/* MAP LEGEND */
+#map-legend{position:absolute;top:12px;right:12px;z-index:50;background:rgba(4,14,42,.82);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:9px 13px;backdrop-filter:blur(8px);pointer-events:none;}
+.leg-item{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:9.5px;color:rgba(255,255,255,.8);}
+.leg-item:last-child{margin-bottom:0;}
+.leg-line{width:26px;height:2px;border-radius:1px;}
+.leg-line.route-gold{background:#f0b030;}
+.leg-line.route-dash{background:repeating-linear-gradient(90deg,rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 4px,transparent 4px,transparent 8px);}
+
+/* LEFT TOGGLE BUTTON */
+#left-toggle{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:22px;height:56px;background:rgba(4,14,42,.88);border:1px solid rgba(200,160,32,.4);border-radius:6px;color:var(--gold);font-size:17px;cursor:pointer;z-index:200;display:flex;align-items:center;justify-content:center;transition:background .2s;padding:0;line-height:1;}
+#left-toggle:hover{background:rgba(26,45,90,.95);}
+
+/* CHERRY BLOSSOMS */
+.petal{position:absolute;pointer-events:none;z-index:20;opacity:0;animation:fallPetal linear infinite;user-select:none;}
+@keyframes fallPetal{0%{opacity:0;transform:translateY(0) rotate(0deg);}8%{opacity:.88;}92%{opacity:.65;}100%{opacity:0;transform:translateY(108vh) rotate(780deg);}}
+
+/* DETAIL PANEL */
+#panel{position:absolute;top:0;right:0;width:500px;height:100%;background:var(--panel);box-shadow:-4px 0 30px rgba(0,0,0,.4);transform:translateX(100%);transition:transform .38s cubic-bezier(.25,.46,.45,.94);z-index:1000;display:flex;flex-direction:column;overflow:hidden;}
+#panel.open{transform:translateX(0);}
+.p-hero{height:220px;position:relative;overflow:hidden;display:flex;align-items:flex-end;flex-shrink:0;}
+.p-hero-bg{position:absolute;inset:0;}
+.p-hero-info{position:relative;z-index:2;padding:20px 24px;}
+.p-tag{display:inline-block;background:var(--gold);color:white;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 14px;border-radius:10px;margin-bottom:8px;}
+.p-hero-info h2{font-family:"Playfair Display",serif;font-size:26px;color:white;text-shadow:0 2px 14px rgba(0,0,0,.7);line-height:1.1;}
+.p-hero-info .tagline{font-size:14px;color:rgba(255,255,255,.85);margin-top:5px;}
+.p-close{position:absolute;top:12px;right:12px;z-index:3;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.3);border:none;color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:background .2s;}
+.p-close:hover{background:rgba(0,0,0,.55);}
+.p-tabs{display:flex;border-bottom:1px solid #e5e0d8;flex-shrink:0;}
+.p-tab{flex:1;padding:13px 4px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#bbb;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;user-select:none;}
+.p-tab.active{color:var(--terra);border-bottom-color:var(--terra);}
+.p-body{flex:1;overflow-y:auto;padding:20px;}
+.p-body::-webkit-scrollbar{width:5px;}
+.p-body::-webkit-scrollbar-thumb{background:#ddd;border-radius:3px;}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c0bbb2;margin-bottom:14px;}
+.sight-list{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.sight-item{display:flex;align-items:flex-start;gap:14px;padding:10px 14px 10px 10px;background:white;border-radius:12px;border:1px solid #ede9e3;overflow:hidden;}
+.sight-photo{width:100px;height:100px;border-radius:9px;flex-shrink:0;background-size:cover;background-position:center;background-color:#ddd8d0;position:relative;overflow:hidden;animation:shimmer 1.4s infinite linear;background-image:linear-gradient(90deg,#ddd8d0 25%,#eee9e2 50%,#ddd8d0 75%);background-size:300% 100%;}
+.sight-photo.loaded{animation:none;}
+.sight-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.4) 0%,transparent 50%);pointer-events:none;}
+.sight-badge{position:absolute;bottom:4px;left:4px;z-index:1;font-size:14px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7));}
+@keyframes shimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
+.sight-item strong{font-size:14px;color:#222;display:block;margin-bottom:4px;margin-top:3px;}
+.sight-item span{font-size:12px;color:#888;line-height:1.5;}
+.best-time{background:linear-gradient(135deg,#e8f4e0,#d4efc8);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+.best-time strong{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a7c3a;}
+.best-time p{font-size:13px;color:#5a8040;margin-top:3px;}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.w-card{background:white;border-radius:8px;padding:11px;border:1px solid #ede9e3;}
+.w-season{font-size:10px;font-weight:700;color:#bbb;text-transform:uppercase;letter-spacing:1px;}
+.w-temp{font-family:"Playfair Display",serif;font-size:20px;color:var(--terra);margin:3px 0;}
+.w-desc{font-size:11px;color:#666;line-height:1.4;}
+.food-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.food-card{background:white;border-radius:10px;padding:14px 10px;border:1px solid #ede9e3;text-align:center;}
+.food-emoji{font-size:30px;display:block;margin-bottom:7px;}
+.food-name{font-size:13px;font-weight:700;color:#333;}
+.food-desc{font-size:11px;color:#999;margin-top:3px;line-height:1.4;}
+.tr-list{display:flex;flex-direction:column;gap:10px;}
+.tr-item{display:flex;gap:14px;align-items:flex-start;padding:12px;background:white;border-radius:10px;border:1px solid #ede9e3;}
+.tr-ico{width:42px;height:42px;border-radius:10px;background:#f3efe6;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.tr-item strong{font-size:14px;color:#333;display:block;}
+.tr-item span{font-size:12px;color:#888;line-height:1.5;}
+.maplibregl-canvas{outline:none;}
+.maplibregl-ctrl-group{border-radius:8px !important;overflow:hidden;background:rgba(4,12,36,.85) !important;border:1px solid rgba(255,255,255,.15) !important;}
+.maplibregl-ctrl button{color:white !important;}
+.maplibregl-ctrl-icon{filter:invert(1) !important;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">&#9992; WORLD <span>TRAVEL</span></div>
+    <div class="nav-pills">
+      <div class="nav-pill active" onclick="switchCountry('italy')">&#127470;&#127481; Italy</div>
+      <div class="nav-pill" onclick="switchCountry('greece')">&#127468;&#127479; Greece</div>
+      <div class="nav-pill" onclick="switchCountry('japan')">&#127471;&#127477; Japan</div>
+    </div>
+    <div style="width:140px;text-align:right;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;">Illustrated Guide</div>
+  </header>
+
+  <div id="main">
+    <div id="left-panel">
+      <div id="country-hero">
+        <div class="hero-title" id="hero-title"></div>
+        <div class="hero-tagline" id="hero-tagline"></div>
+        <div class="hero-badges" id="hero-badges"></div>
+      </div>
+      <div id="day-list"></div>
+      <div id="highlights"></div>
+    </div>
+
+    <div id="map-wrap">
+      <button id="left-toggle" onclick="toggleLeft()" title="Toggle itinerary">&#8249;</button>
+      <div id="map"></div>
+
+      <div id="map-legend">
+        <div class="leg-item"><div class="leg-line route-gold"></div><span>Travel route</span></div>
+        <div class="leg-item"><div class="leg-line route-dash"></div><span>Return route</span></div>
+      </div>
+
+      <svg id="compass" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" fill="rgba(4,14,42,0.82)" stroke="rgba(200,160,32,0.5)" stroke-width="1.5"/>
+        <polygon points="50,8 54,42 50,38 46,42" fill="#c8a020"/>
+        <polygon points="50,92 54,58 50,62 46,58" fill="rgba(255,255,255,0.45)"/>
+        <polygon points="8,50 42,46 38,50 42,54" fill="rgba(255,255,255,0.45)"/>
+        <polygon points="92,50 58,46 62,50 58,54" fill="rgba(255,255,255,0.45)"/>
+        <text x="50" y="6"  text-anchor="middle" font-size="10" font-weight="700" fill="#c8a020" font-family="Lato,sans-serif">N</text>
+        <text x="50" y="98" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.5)" font-family="Lato,sans-serif">S</text>
+        <text x="3"  y="54" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.5)" font-family="Lato,sans-serif">W</text>
+        <text x="97" y="54" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.5)" font-family="Lato,sans-serif">E</text>
+        <circle cx="50" cy="50" r="4" fill="#c8a020" stroke="white" stroke-width="1.5"/>
+      </svg>
+
+      <div id="panel">
+        <div class="p-hero" id="p-hero">
+          <div class="p-hero-bg" id="p-bg"></div>
+          <div class="p-hero-info">
+            <div class="p-tag" id="p-country"></div>
+            <h2 id="p-name"></h2>
+            <div class="tagline" id="p-tagline"></div>
+          </div>
+          <button class="p-close" onclick="closePanel()">&#10005;</button>
+        </div>
+        <div class="p-tabs">
+          <div class="p-tab active" onclick="switchTab('sights',this)">&#127963; Sights</div>
+          <div class="p-tab" onclick="switchTab('weather',this)">&#9728;&#65039; Weather</div>
+          <div class="p-tab" onclick="switchTab('food',this)">&#127869; Food</div>
+          <div class="p-tab" onclick="switchTab('transport',this)">&#128652; Getting There</div>
+        </div>
+        <div class="p-body" id="p-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const ITINERARIES = {
+  italy: {
+    title: 'Italy', duration: '15 Days',
+    tagline: 'Roman Empire × Renaissance Art × Coastal Paradise',
+    badges: ['🇻 UNESCO Sites', '🍝 Authentic Cuisine', '⛵ Amalfi Riviera'],
+    highlights: [
+      {icon:'🏗', title:'World Heritage', desc:'Colosseum · Vatican · Florence Historic Centre'},
+      {icon:'🍝', title:'Italian Cuisine', desc:'Cacio e Pepe · Risotto · Gelato'},
+      {icon:'⛵', title:'Coastal Beauty', desc:'Positano · Capri Island · Amalfi Drive'},
+      {icon:'🎨', title:'Art & Culture', desc:'Uffizi · Sistine Chapel · Michelangelo\'s David'},
+    ],
+    days: [
+      {n:'D1', icon:'✈', title:'Depart → Milan', sub:['Arrive Malpensa (MXP)','Hotel check-in, Duomo evening stroll'], locs:['milan']},
+      {n:'D2', icon:'🏛', title:'Milan', sub:['Duomo rooftop & Cathedral interior',"Leonardo's Last Supper (pre-book!)",'Galleria Vittorio Emanuele II'], locs:['milan']},
+      {n:'D3', icon:'🚂', title:'Milan → Venice', sub:['High-speed train 2.5h','Evening gondola on the Grand Canal'], locs:['venice']},
+      {n:'D4', icon:'⛵', title:'Venice', sub:["St. Mark's Basilica & Doge's Palace",'Rialto Bridge & market stalls','Vaporetto Line 1 scenic tour'], locs:['venice']},
+      {n:'D5', icon:'🚂', title:'Venice → Florence', sub:['Trenitalia 2h','Arrive Florence, Ponte Vecchio stroll'], locs:['florence']},
+      {n:'D6', icon:'🎨', title:'Florence', sub:['Uffizi Gallery (pre-book essential)',"Brunelleschi's Dome — climb to the top","Michelangelo's David at the Accademia"], locs:['florence']},
+      {n:'D7', icon:'🌊', title:'Cinque Terre Day', sub:['Train west to the five coastal villages','Hike the Sentiero Azzurro trail','Return to Florence evening'], locs:['florence']},
+      {n:'D8', icon:'🚂', title:'Florence → Rome', sub:['Frecciarossa 1.5h','Vatican-area hotel check-in'], locs:['rome']},
+      {n:'D9', icon:'🏹', title:'Rome — Ancient City', sub:['Colosseum & Roman Forum','Palatine Hill at sunset','Trevi Fountain after dark'], locs:['rome']},
+      {n:'D10', icon:'⛪', title:'Rome — Vatican', sub:['Vatican Museums & Sistine Chapel (7am)','St. Peter\'s Basilica & dome climb','Piazza Navona & Campo de\' Fiori'], locs:['rome']},
+      {n:'D11', icon:'🚌', title:'Rome → Amalfi Coast', sub:['3h drive to Positano','Path of the Gods cliff hike 7.5km'], locs:['amalfi']},
+      {n:'D12', icon:'⛴', title:'Amalfi & Capri', sub:['Ferry to Capri island 40 min','Blue Grotto & Villa Jovis','Anacapri chairlift panorama'], locs:['amalfi']},
+      {n:'D13', icon:'🌋', title:'Naples → Sicily', sub:['Fly Naples to Catania 1h','Mt. Etna guided summit tour','Taormina hilltop Greek theatre'], locs:['sicily']},
+      {n:'D14', icon:'🏗', title:'Sicily', sub:['Valley of the Temples Agrigento','Ballarò street market Palermo','Fresh arancina & granita breakfast'], locs:['sicily']},
+      {n:'D15', icon:'✈', title:'Sicily → Home', sub:['Catania airport transfer','Return flight home'], locs:['sicily']},
+    ]
+  },
+
+  greece: {
+    title: 'Greece', duration: '15 Days',
+    tagline: 'Aegean Islands × Ancient Myths × World Heritage Panorama',
+    badges: ['🏗 Ancient Civilisation', '⛴ 3-Island Journey', '🌅 Caldera Sunsets'],
+    highlights: [
+      {icon:'🏗', title:'UNESCO Heritage', desc:'Acropolis · Delphi · Olympia · Meteora'},
+      {icon:'⛴', title:'Aegean Islands', desc:'Mykonos · Santorini · Crete'},
+      {icon:'🏨', title:'Premium Stays', desc:'4-5★ Hotels · Santorini Cave Suite'},
+      {icon:'🍽', title:'Greek Flavours', desc:'Souvlaki · Ouzo · Grilled Octopus'},
+    ],
+    days: [
+      {n:'D1', icon:'✈', title:'Depart → Athens', sub:['Arrive Athens (ATH)','Hotel check-in in Plaka district'], locs:['athens']},
+      {n:'D2', icon:'🏗', title:'Athens', sub:['Acropolis & Parthenon (sunrise visit)','National Archaeological Museum','Monastiraki flea market & souvlaki'], locs:['athens']},
+      {n:'D3', icon:'🚌', title:'Athens → Peloponnese', sub:['Ancient Corinth ruins','Mycenae Lion Gate citadel','Drive to Olympia'], locs:['athens']},
+      {n:'D4', icon:'🏅', title:'Olympia → Delphi', sub:['Original Olympic stadium & museum','Temple of Zeus ruins (470 BC)','Drive to Delphi village'], locs:['meteora']},
+      {n:'D5', icon:'🏗', title:'Delphi', sub:['Apollo sanctuary & oracle site','Delphi Archaeological Museum','Arachova mountain village stop'], locs:['meteora']},
+      {n:'D6', icon:'⛪', title:'Meteora', sub:['Great Meteoron Monastery (1340 AD)','Sunrise mist over the rock pillars','Drive back to Athens'], locs:['meteora']},
+      {n:'D7', icon:'⛴', title:'Athens → Mykonos', sub:['High-speed ferry from Piraeus 2.5h','Kato Mili windmills & Little Venice'], locs:['mykonos']},
+      {n:'D8', icon:'🏖', title:'Mykonos', sub:['Paraportiani church & white lanes','Paradise Beach afternoon','Sunset cocktails at Little Venice'], locs:['mykonos']},
+      {n:'D9', icon:'🌅', title:'Mykonos → Santorini', sub:['Ferry 2h, arrive afternoon','Oia sunset — arrive 3h early in peak!','Caldera wine tasting at cliff winery'], locs:['santorini']},
+      {n:'D10', icon:'⛪', title:'Santorini', sub:['Blue dome churches at dawn','Red & Black volcanic sand beaches','Boat tour of the caldera & volcano'], locs:['santorini']},
+      {n:'D11', icon:'🏗', title:'Santorini → Crete', sub:['Ferry or fly to Heraklion','Palace of Knossos (1700 BC)','Heraklion city & fortress'], locs:['crete']},
+      {n:'D12', icon:'🏔', title:'Crete', sub:['Samaria Gorge hike 16km (May–Oct)','Balos Lagoon turquoise waters','Evening flight back to Athens'], locs:['crete']},
+      {n:'D13', icon:'🏗', title:'Athens', sub:['Acropolis Museum (priceless friezes)','Cape Sounion — Temple of Poseidon','Vouliagmeni lake swim'], locs:['athens']},
+      {n:'D14', icon:'🛍', title:'Athens — Free Day', sub:['Plaka & Anafiotika old town','Kolonaki galleries & cafés','Farewell seafood dinner at Piraeus'], locs:['athens']},
+      {n:'D15', icon:'✈', title:'Athens → Home', sub:['Breakfast at hotel','Airport transfer — fly home'], locs:['athens']},
+    ]
+  },
+
+  japan: {
+    title: 'Japan', duration: '15 Days',
+    tagline: 'Neon Metropolis × Samurai Temples × Sacred Mt. Fuji',
+    badges: ['⛩ Ancient Shrines', '🗻 Mt. Fuji', '🌸 Cherry Blossoms'],
+    highlights: [
+      {icon:'⛩', title:'UNESCO Shrines', desc:'Fushimi Inari · Itsukushima · Hōryū-ji'},
+      {icon:'🚅', title:'Shinkansen', desc:'Bullet train — Tokyo to Osaka 2.5h'},
+      {icon:'🌸', title:'Sakura Season', desc:'Late March–April in Tokyo & Kyoto'},
+      {icon:'🍜', title:'Japanese Cuisine', desc:'Ramen · Sushi Omakase · Takoyaki'},
+    ],
+    days: [
+      {n:'D1', icon:'✈', title:'Depart → Tokyo', sub:['Arrive Narita or Haneda','Hotel in Shinjuku, evening Shibuya crossing'], locs:['tokyo']},
+      {n:'D2', icon:'⛩', title:'Tokyo — East Side', sub:['Senso-ji Temple Asakusa (6am!)','Tokyo Skytree 634m panorama','Akihabara electronics district'], locs:['tokyo']},
+      {n:'D3', icon:'🌸', title:'Tokyo — West Side', sub:['Shinjuku Gyoen garden (sakura!)','Harajuku Takeshita Street','Shibuya Sky rooftop scramble view'], locs:['tokyo']},
+      {n:'D4', icon:'🗻', title:'Tokyo → Mt. Fuji', sub:['Bus from Shinjuku 2h to Kawaguchiko','Chureito Pagoda sunset view','Lakeside onsen hotel overnight'], locs:['fuji']},
+      {n:'D5', icon:'🚅', title:'Fuji → Kyoto', sub:['Shinkansen from Shin-Fuji 2h15','Arrive Kyoto, evening Gion stroll'], locs:['kyoto']},
+      {n:'D6', icon:'⛩', title:'Kyoto — East', sub:['Fushimi Inari torii gates (5am!)','Arashiyama bamboo grove & Tenryu-ji',"Philosopher's Path canal walk"], locs:['kyoto']},
+      {n:'D7', icon:'🎯', title:'Kyoto — West', sub:['Kinkaku-ji Golden Pavilion','Nijo Castle & Ninomaru Palace','Traditional kaiseki multi-course dinner'], locs:['kyoto']},
+      {n:'D8', icon:'🦌', title:'Nara Day Trip', sub:['45 min by JR — Nara Park sacred deer','Todai-ji Great Buddha Hall (749 AD)','Kasuga Grand Shrine lanterns'], locs:['nara']},
+      {n:'D9', icon:'🚅', title:'Kyoto → Osaka', sub:['15 min Shinkansen','Osaka Castle & Nishinomaru garden','Dotonbori neon-drenched canal night'], locs:['osaka']},
+      {n:'D10', icon:'🍜', title:'Osaka', sub:['Kuromon market — “Osaka\'s Kitchen”','Universal Studios Japan (optional)','Takoyaki, okonomiyaki, kushikatsu feast'], locs:['osaka']},
+      {n:'D11', icon:'🚅', title:'Osaka → Hiroshima', sub:['Shinkansen 50 min','Peace Memorial Park & Atomic Bomb Dome','Hiroshima-style okonomiyaki dinner'], locs:['hiroshima']},
+      {n:'D12', icon:'⛴', title:'Miyajima Island', sub:['15 min ferry — floating torii gate','Mt. Misen hike 535m','Shinkansen back to Tokyo evening'], locs:['hiroshima']},
+      {n:'D13', icon:'🗼', title:'Tokyo — Modern', sub:['teamLab digital art museum','Odaiba waterfront & Rainbow Bridge','Tokyo Tower night illumination'], locs:['tokyo']},
+      {n:'D14', icon:'🛍', title:'Tokyo — Final Day', sub:['Tsukiji outer market breakfast','Yanaka old shitamachi neighbourhood','Depachika basement food halls'], locs:['tokyo']},
+      {n:'D15', icon:'✈', title:'Tokyo → Home', sub:['Morning checkout, airport transfer','Haneda or Narita — fly home'], locs:['tokyo']},
+    ]
+  }
+};
+
+const DAY_MARKERS = {
+  italy: [
+    {day:'D1-2',  id:'milan',        lat:45.464, lng:9.190,  wiki:'Milan',        name:'Milan',        country:'italy'},
+    {day:'D3-4',  id:'venice',       lat:45.440, lng:12.336, wiki:'Venice',       name:'Venice',       country:'italy'},
+    {day:'D5-7',  id:'florence',     lat:43.769, lng:11.255, wiki:'Florence',     name:'Florence',     country:'italy'},
+    {day:'D8-10', id:'rome',         lat:41.902, lng:12.496, wiki:'Rome',         name:'Rome',         country:'italy'},
+    {day:'D11-12',id:'amalfi',       lat:40.634, lng:14.603, wiki:'Amalfi Coast', name:'Amalfi',       country:'italy'},
+    {day:'D13-15',id:'sicily',       lat:37.750, lng:14.993, wiki:'Mount Etna',   name:'Sicily',       country:'italy'},
+    {day:'★',     id:'naples',       lat:40.851, lng:14.268, wiki:'Naples',       name:'Naples',       country:'italy'},
+    {day:'★',     id:'cinque-terre', lat:44.128, lng:9.716,  wiki:'Cinque Terre', name:'Cinque Terre', country:'italy'},
+    {day:'★',     id:'lake-como',    lat:45.994, lng:9.264,  wiki:'Lake Como',    name:'Lake Como',    country:'italy'},
+    {day:'★',     id:'pompeii',      lat:40.750, lng:14.489, wiki:'Pompeii',      name:'Pompeii',      country:'italy'},
+  ],
+  greece: [
+    {day:'D1-2',  id:'athens',       lat:37.983, lng:23.728, wiki:'Athens',       name:'Athens',       country:'greece'},
+    {day:'D4-6',  id:'meteora',      lat:39.722, lng:21.630, wiki:'Meteora',      name:'Meteora',      country:'greece'},
+    {day:'D7-8',  id:'mykonos',      lat:37.445, lng:25.328, wiki:'Mykonos',      name:'Mykonos',      country:'greece'},
+    {day:'D9-10', id:'santorini',    lat:36.393, lng:25.461, wiki:'Santorini',    name:'Santorini',    country:'greece'},
+    {day:'D11-12',id:'crete',        lat:35.240, lng:25.140, wiki:'Crete',        name:'Crete',        country:'greece'},
+    {day:'★',     id:'rhodes',       lat:36.434, lng:28.217, wiki:'Rhodes',       name:'Rhodes',       country:'greece'},
+    {day:'★',     id:'thessaloniki', lat:40.634, lng:22.944, wiki:'Thessaloniki', name:'Thessaloniki', country:'greece'},
+    {day:'★',     id:'delphi',       lat:38.483, lng:22.501, wiki:'Delphi',       name:'Delphi',       country:'greece'},
+    {day:'★',     id:'corfu',        lat:39.624, lng:19.922, wiki:'Corfu',        name:'Corfu',        country:'greece'},
+    {day:'★',     id:'olympia',      lat:37.638, lng:21.630, wiki:'Olympia, Elis',name:'Olympia',      country:'greece'},
+  ],
+  japan: [
+    {day:'D1-3',  id:'tokyo',        lat:35.682, lng:139.691, wiki:'Tokyo',        name:'Tokyo',      country:'japan'},
+    {day:'D4',    id:'fuji',         lat:35.360, lng:138.727, wiki:'Mount Fuji',   name:'Mt. Fuji',   country:'japan'},
+    {day:'D5-7',  id:'kyoto',        lat:35.011, lng:135.768, wiki:'Kyoto',        name:'Kyoto',      country:'japan'},
+    {day:'D8',    id:'nara',         lat:34.685, lng:135.805, wiki:'Nara, Nara',   name:'Nara',       country:'japan'},
+    {day:'D9-10', id:'osaka',        lat:34.693, lng:135.502, wiki:'Osaka',        name:'Osaka',      country:'japan'},
+    {day:'D11-12',id:'hiroshima',    lat:34.385, lng:132.455, wiki:'Hiroshima',    name:'Hiroshima',  country:'japan'},
+    {day:'★',     id:'hakone',       lat:35.233, lng:139.106, wiki:'Hakone',       name:'Hakone',     country:'japan'},
+    {day:'★',     id:'nikko',        lat:36.759, lng:139.621, wiki:'Nikkō',        name:'Nikkō',      country:'japan'},
+    {day:'★',     id:'kamakura',     lat:35.319, lng:139.547, wiki:'Kamakura',     name:'Kamakura',   country:'japan'},
+    {day:'★',     id:'kanazawa',     lat:36.561, lng:136.656, wiki:'Kanazawa',     name:'Kanazawa',   country:'japan'},
+    {day:'🏔',    id:'sapporo',      lat:43.062, lng:141.354, wiki:'Sapporo',      name:'Sapporo',    country:'japan'},
+    {day:'🏔',    id:'hakodate',     lat:41.769, lng:140.729, wiki:'Hakodate',     name:'Hakodate',   country:'japan'},
+    {day:'🏔',    id:'niseko',       lat:42.804, lng:140.686, wiki:'Niseko',       name:'Niseko',     country:'japan'},
+    {day:'🏔',    id:'biei',         lat:43.596, lng:142.464, wiki:'Biei, Hokkaido',name:'Biei',      country:'japan'},
+  ]
+};
+
+const ROUTE_COORDS = {
+  italy:  [[9.190,45.464],[12.336,45.440],[11.255,43.769],[12.496,41.902],[14.603,40.634],[14.993,37.750]],
+  greece: [[23.728,37.983],[21.630,39.722],[25.328,37.445],[25.461,36.393],[25.140,35.240],[23.728,37.983]],
+  japan:  [[139.691,35.682],[138.727,35.360],[135.768,35.011],[135.805,34.685],[135.502,34.693],[132.455,34.385],[139.691,35.682]]
+};
+
+const FLY_TO = {
+  italy:  {center:[12.5,42.5],  zoom:5.6, pitch:50, bearing:-12, duration:1400},
+  greece: {center:[24.0,38.2],  zoom:5.6, pitch:50, bearing:-12, duration:1400},
+  japan:  {center:[138.0,36.5], zoom:5.6, pitch:50, bearing:-12, duration:1800}
+};
+
+// MAP SETUP
+const map = new maplibregl.Map({
+  container:'map',
+  style:'https://tiles.openfreemap.org/styles/liberty',
+  center:[12.5,42.5], zoom:5.2, pitch:48, bearing:-12,
+  antialias:true, minZoom:2, maxZoom:14
+});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-left');
+
+let mapLoaded=false, pendingCountry='italy', currentCountry=null, _markers=[];
+
+map.on('load',()=>{
+  map.getStyle().layers.forEach(layer=>{
+    if(layer.type==='fill'&&(layer.id.includes('water')||layer.id.includes('ocean')||layer.id.includes('sea')))
+      try{map.setPaintProperty(layer.id,'fill-color','#0a3d82');}catch(e){}
+    if(layer.type==='line'&&layer.id.includes('water'))
+      try{map.setPaintProperty(layer.id,'line-color','#0a4a9e');}catch(e){}
+    if(layer.layout&&layer.layout['text-field'])
+      try{map.setLayoutProperty(layer.id,'text-field',['coalesce',['get','name:en'],['get','name']]);}catch(e){}
+  });
+  map.addSource('terrain-dem',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,encoding:'terrarium',maxzoom:15});
+  map.setTerrain({source:'terrain-dem',exaggeration:1.8});
+  map.addLayer({id:'sky',type:'sky',paint:{'sky-type':'atmosphere','sky-atmosphere-sun':[0.0,30.0],'sky-atmosphere-sun-intensity':15}});
+  map.addSource('route',{type:'geojson',data:{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:[]}}});
+  map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},
+    paint:{'line-color':'#f0b030','line-width':2.8,'line-dasharray':[5,3],'line-opacity':0.9}});
+  mapLoaded=true;
+  switchCountry(pendingCountry);
+});
+
+function switchCountry(country){
+  if(!mapLoaded){pendingCountry=country;return;}
+  currentCountry=country;
+  document.querySelectorAll('.nav-pill').forEach((p,i)=>{
+    p.classList.toggle('active',['italy','greece','japan'][i]===country);
+  });
+  renderItinerary(country);
+  updateRoute(country);
+  updateDayMarkers(country);
+  map.flyTo({...FLY_TO[country]});
+  if(country==='japan') startPetals(); else stopPetals();
+  closePanel();
+}
+
+function renderItinerary(country){
+  const it=ITINERARIES[country];
+  document.getElementById('hero-title').innerHTML=it.title+' <span class="days-num">'+it.duration+'</span>';
+  document.getElementById('hero-tagline').textContent=it.tagline;
+  document.getElementById('hero-badges').innerHTML=it.badges.map(b=>`<span class="hero-badge">${b}</span>`).join('');
+  document.getElementById('day-list').innerHTML=it.days.map((d,i)=>`
+    <div class="day-item" id="di-${i}" onclick="activateDay(${i},'${country}')">
+      <div class="day-badge"><span class="dn">${d.n}</span></div>
+      <div class="day-icon">${d.icon}</div>
+      <div class="day-content">
+        <div class="day-title">${d.title}</div>
+        <ul class="day-sub">${d.sub.map(s=>`<li>${s}</li>`).join('')}</ul>
+      </div>
+    </div>`).join('');
+  document.getElementById('highlights').innerHTML=it.highlights.map(h=>`
+    <div class="hl-card">
+      <div class="hl-icon">${h.icon}</div>
+      <div class="hl-title">${h.title}</div>
+      <div class="hl-desc">${h.desc}</div>
+    </div>`).join('');
+}
+
+function activateDay(i,country){
+  document.querySelectorAll('.day-item').forEach((el,j)=>el.classList.toggle('active',j===i));
+  const d=ITINERARIES[country].days[i];
+  if(d.locs&&d.locs[0]&&DATA[d.locs[0]]) openPanel(d.locs[0]);
+}
+
+function updateRoute(country){
+  map.getSource('route').setData({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:ROUTE_COORDS[country]}});
+}
+
+function updateDayMarkers(country){
+  _markers.forEach(m=>m.remove()); _markers=[];
+  (DAY_MARKERS[country]||[]).forEach(lm=>{
+    const el=document.createElement('div');
+    const pid=`dm-${lm.id}`;
+    el.innerHTML=`
+      <div class="dm-wrap">
+        <div class="dm-day-badge">${lm.day}</div>
+        <div class="dm-photo ${lm.country}" id="${pid}"></div>
+        <div class="dm-line"></div>
+        <div class="dm-dot ${lm.country}"></div>
+        <div class="dm-name">${lm.name}</div>
+      </div>`;
+    el.addEventListener('click',(e)=>{e.stopPropagation();openPanel(lm.id);});
+    _markers.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([lm.lng,lm.lat]).addTo(map));
+    wikiImg(lm.wiki).then(src=>{
+      if(!src)return;
+      const b=document.getElementById(pid);
+      if(b){b.style.backgroundImage=`url('${src}')`;b.style.backgroundSize='cover';b.style.backgroundPosition='center';}
+    });
+  });
+}
+
+let _petalTimer=null;
+function startPetals(){
+  if(_petalTimer)return;
+  const wrap=document.getElementById('map-wrap');
+  _petalTimer=setInterval(()=>{
+    const p=document.createElement('div');
+    p.className='petal';p.textContent='🌸';
+    p.style.left=(Math.random()*100)+'vw';p.style.top='-24px';
+    p.style.fontSize=(11+Math.random()*9)+'px';
+    p.style.animationDuration=(7+Math.random()*9)+'s';
+    p.style.animationDelay=(Math.random()*1.5)+'s';
+    wrap.appendChild(p);setTimeout(()=>p.remove(),18000);
+  },280);
+}
+function stopPetals(){
+  if(_petalTimer){clearInterval(_petalTimer);_petalTimer=null;}
+  document.querySelectorAll('.petal').forEach(p=>p.remove());
+}
+
+function toggleLeft(){
+  const lp=document.getElementById('left-panel');
+  const btn=document.getElementById('left-toggle');
+  lp.classList.toggle('collapsed');
+  btn.innerHTML=lp.classList.contains('collapsed')?'&#8250;':'&#8249;';
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
+const DATA = {
+  milan:{name:'Milan',country:'Italy',tagline:'Fashion, Design & Gothic Grandeur',
+    heroBg:'linear-gradient(135deg,#7a5810 0%,#b89020 60%,#5a3808 100%)',
+    sights:[
+      {icon:'⛪',name:'Duomo di Milano',desc:'Gothic masterpiece — 3,400 statues, 135 spires, stunning rooftop walk with views over the Alps'},
+      {icon:'🎨',name:"Leonardo's Last Supper",desc:"Da Vinci's 1498 mural at Santa Maria delle Grazie — must book months in advance"},
+      {icon:'🛍',name:'Galleria Vittorio Emanuele II',desc:"World's oldest shopping mall — Prada, Gucci & Savini café in a stunning 19th-century arcade"},
+      {icon:'🏰',name:'Castello Sforzesco',desc:'Massive Visconti\u2013Sforza fortress with seven museums, Michelangelo\u2019s last Piet\u00e0 inside'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Mild & sunny — ideal for sightseeing'},summer:{temp:'30°C',desc:'Hot & humid; Fashion Week in September'},autumn:{temp:'15°C',desc:'Crisp, colourful, harvest fairs nearby'},winter:{temp:'4°C',desc:'Cold, possible snow, festive Christmas markets'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍚',name:'Risotto alla Milanese',desc:'Saffron-golden rice, bone marrow, Parmigiano'},
+      {emoji:'🥩',name:'Cotoletta Milanese',desc:'Bone-in breaded veal cutlet, pan-fried in butter'},
+      {emoji:'🥧',name:'Panettone',desc:'Milan\'s world-famous Christmas dome bread'},
+      {emoji:'🍷',name:'Campari Spritz',desc:'The aperitivo tradition was born here in 1860'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Malpensa (MXP) or city Linate (LIN) — both well-connected to European hubs'},
+      {icon:'🚇',type:'Metro (ATM)',desc:'Lines M1–M5 cover the city fast; day passes available at machines'},
+      {icon:'🚂',type:'High-Speed Rail',desc:'Trenitalia & Italo: Rome 2.5h, Venice 2.5h, Florence 1.75h'},
+      {icon:'🚌',type:'Trams & Buses',desc:'Dense ATM network; vintage tram Line 1 is worth a ride'},
+    ]
+  },
+
+  venice:{name:'Venice',country:'Italy',tagline:'City of Canals & Renaissance Splendour',
+    heroBg:'linear-gradient(135deg,#0e2d5a 0%,#1a5a9a 60%,#0a3870 100%)',
+    sights:[
+      {icon:'🏛',name:"St. Mark's Basilica",desc:'Byzantine gold-mosaic masterpiece — arrive before 9am to skip queues, free entry'},
+      {icon:'🌉',name:'Rialto Bridge',desc:'1591 stone arch over the Grand Canal, flanked by market stalls and views'},
+      {icon:'🎭',name:"Doge's Palace",desc:'Gothic seat of Venetian power — includes the Bridge of Sighs and state prison'},
+      {icon:'🎪',name:'Venice Carnival',desc:'Two weeks of masked balls, street processions and mystery each February'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Ideal — mild, fewer crowds, perfect golden light'},summer:{temp:'27°C',desc:'Hot & crowded; acqua alta risk grows Oct–Nov'},autumn:{temp:'14°C',desc:'Moody mists — cinematic and intimate'},winter:{temp:'4°C',desc:'Fog, very few tourists, mysterious and atmospheric'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🦑',name:'Risotto al Nero',desc:'Squid-ink risotto — jet black, briny, extraordinary'},
+      {emoji:'🦐',name:'Cicchetti',desc:'Venetian tapas — tiny bites with Prosecco at a bacaro bar'},
+      {emoji:'🍹',name:'Aperol Spritz',desc:'Invented in Venice — 3 parts Prosecco, 2 Aperol, 1 soda'},
+      {emoji:'🐟',name:'Fritto Misto',desc:'Lightly fried mixed seafood — the Venetian classic'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Marco Polo (VCE) — 15 min water bus or 30 min regular bus to Piazzale Roma'},
+      {icon:'🚢',type:'Vaporetto',desc:'Water buses are the metro — Line 1 is the scenic Grand Canal route'},
+      {icon:'🚂',type:'By Train',desc:'Santa Lucia station in the city centre — direct to Rome, Milan, Florence'},
+      {icon:'🚤',type:'Water Taxi',desc:'Private boats — fast but pricey; great for arrivals with luggage'},
+    ]
+  },
+
+  florence:{name:'Florence',country:'Italy',tagline:'Cradle of the Renaissance',
+    heroBg:'linear-gradient(135deg,#7a2808 0%,#b84a28 55%,#d88038 100%)',
+    sights:[
+      {icon:'🎨',name:'Uffizi Gallery',desc:'Botticelli, Raphael, Leonardo & Michelangelo — book weeks in advance'},
+      {icon:'⛪',name:"Brunelleschi's Dome",desc:'The world\'s largest brick dome (1436) — climb to the top for city panoramas'},
+      {icon:'🗿',name:"Accademia — Michelangelo's David",desc:'5.17m marble masterpiece — prepare to be genuinely awestruck'},
+      {icon:'🌉',name:'Ponte Vecchio',desc:'Medieval bridge of goldsmith shops spanning the Arno since 1345'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Perfect — wildflowers, Easter fiestas, golden light everywhere'},summer:{temp:'34°C',desc:'Very hot; book Uffizi and David months in advance'},autumn:{temp:'18°C',desc:'Harvest time, truffle fairs, wine events in Chianti'},winter:{temp:'7°C',desc:'Cool, quiet, Christmas markets, much shorter queues'}},
+    bestTime:'April–June & September–November',
+    foods:[
+      {emoji:'🥩',name:'Bistecca Fiorentina',desc:'T-bone from Chianina cattle, grilled rare over charcoal, minimum 1kg'},
+      {emoji:'🍞',name:'Lampredotto Panino',desc:'Slow-cooked tripe sandwich at a street cart — a Florentine institution'},
+      {emoji:'🍷',name:'Chianti Classico',desc:'From the hills between Florence & Siena — elegant Sangiovese'},
+      {emoji:'🥣',name:'Ribollita',desc:'Twice-cooked Tuscan bread & cavolo nero bean soup — earthy perfection'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:"Peretola (FLR) for EU flights; Pisa (PSA) just 1h by train"},
+      {icon:'🚂',type:'High-Speed Rail',desc:'SMN station: Rome 1.5h, Milan 1.75h, Venice 2h by Frecciarossa'},
+      {icon:'🚌',type:'ATAF Buses',desc:'City buses cover all areas; historic centre is pedestrian-only zone'},
+      {icon:'🚴',type:'Cycling',desc:'Flat historic centre — bike hire widely available; incredibly walkable'},
+    ]
+  },
+
+  rome:{name:'Rome',country:'Italy',tagline:'The Eternal City — 3,000 Years of History',
+    heroBg:'linear-gradient(135deg,#601808 0%,#903020 55%,#b86030 100%)',
+    sights:[
+      {icon:'🏟',name:'The Colosseum',desc:'70 AD amphitheatre seating 50,000 — book skip-the-line tickets online well ahead'},
+      {icon:'⛪',name:'Vatican City',desc:"St. Peter's + Sistine Chapel + Vatican Museums — arrive at opening time"},
+      {icon:'⛲',name:'Trevi Fountain',desc:'Baroque 1762 masterpiece — toss a coin over your shoulder and make a wish'},
+      {icon:'🏛',name:'Roman Forum & Palatine Hill',desc:'The ancient nerve-centre of the Roman Republic, where it all began'},
+    ],
+    weather:{spring:{temp:'22°C',desc:'Ideal — mild, Easter celebrations, aperitivo season begins'},summer:{temp:'35°C',desc:'Hot & dry; Vatican queues at their worst — go at 7am'},autumn:{temp:'20°C',desc:'Pleasant harvest season, golden afternoon light for photos'},winter:{temp:'8°C',desc:'Cool & uncrowded — best value; Christmas at the Vatican'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍝',name:'Cacio e Pepe',desc:'Spaghetti with Pecorino Romano & black pepper — never add cream'},
+      {emoji:'🥚',name:'Carbonara',desc:'Eggs, guanciale, Pecorino, pepper — only four ingredients, rules are strict'},
+      {emoji:'🍕',name:'Pizza al Taglio',desc:'Roman square pizza sold by weight — try a supplì arancino too'},
+      {emoji:'🍨',name:'Gelato Artigianale',desc:'Artisan gelato — flat tubs (not mounds) signal the real deal'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Fiumicino (FCO) — Leonardo Express train to Termini in 32 min (€14)'},
+      {icon:'🚇',type:'Metro',desc:'Lines A & B — sparse but key for the Vatican and Colosseum'},
+      {icon:'🚌',type:'ATAC Buses',desc:'Dense city-wide network; 24h or 48h passes are great value'},
+      {icon:'🛵',type:'Scooter Rental',desc:'The Roman way to weave through traffic and find hidden corners'},
+    ]
+  },
+
+  amalfi:{name:'Amalfi Coast',country:'Italy',tagline:'Dramatic Cliffs, Lemon Groves & Azure Seas',
+    heroBg:'linear-gradient(135deg,#104a20 0%,#207848 55%,#105060 100%)',
+    sights:[
+      {icon:'🏘',name:'Positano',desc:'Pastel houses cascading cliff to sea — Italy\'s most photographed stretch of coastline'},
+      {icon:'🏛',name:'Amalfi Cathedral',desc:"9th-century Arab-Norman cathedral rising above the town piazza — free entry"},
+      {icon:'🏔',name:'Path of the Gods',desc:'Legendary clifftop hike (7.5km) with jaw-dropping sea panoramas all the way'},
+      {icon:'🏝',name:'Capri Island',desc:'Glamorous day trip — Blue Grotto, Villa Jovis, chairlift to Monte Solaro'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Lemon blossoms, wildflowers, pre-crowd season — perfect conditions'},summer:{temp:'30°C',desc:'Peak season — hot, busy, but sea is perfect temperature for swimming'},autumn:{temp:'22°C',desc:'Still warm, wine harvest nearby, far fewer tourists than summer'},winter:{temp:'12°C',desc:'Quiet & dramatic storms; many restaurants and hotels closed'}},
+    bestTime:'May–June & September–October',
+    foods:[
+      {emoji:'🍋',name:'Limoncello',desc:'Made from the giant Sfusato lemons grown on the terraced hillside gardens'},
+      {emoji:'🍝',name:'Scialatielli ai Frutti di Mare',desc:"Thick fresh pasta with mixed seafood — Amalfi's own invention"},
+      {emoji:'🐟',name:'Pesce alla Griglia',desc:'Grilled fish of the day — orata or branzino caught that morning'},
+      {emoji:'🫙',name:'Colatura di Alici',desc:'Anchovy elixir from nearby Cetara — Italy\'s equivalent of fish sauce'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Naples (NAP) — 1.5h by car; or ferry from Naples port in 65 minutes'},
+      {icon:'⛴',type:'Ferry',desc:'SITA ferries and high-speed hydrofoils connect every coastal town'},
+      {icon:'🚌',type:'SITA Bus',desc:'Hairpin cliff road — buy tickets before boarding; buy return at the same time'},
+      {icon:'🚤',type:'Private Boat',desc:'Renting your own boat is the most glamorous and flexible way to explore'},
+    ]
+  },
+
+  sicily:{name:'Sicily & Mt. Etna',country:'Italy',tagline:'Ancient Myths, Baroque Towns & Active Volcano',
+    heroBg:'linear-gradient(135deg,#401008 0%,#801820 55%,#a03020 100%)',
+    sights:[
+      {icon:'🌋',name:'Mount Etna',desc:"Europe's largest active volcano (3,357m) — guided hike to the summit craters"},
+      {icon:'🏛',name:'Valley of the Temples',desc:'Magnificent Doric Greek temples at Agrigento, c.500 BC — UNESCO site'},
+      {icon:'🛒',name:"Palermo's Ballarò Market",desc:'Street food paradise — arancine, panelle, sfincione fresh from the fryer'},
+      {icon:'🎭',name:'Taormina',desc:'Clifftop Greek theatre with Mount Etna as a live, steaming backdrop'},
+    ],
+    weather:{spring:{temp:'22°C',desc:'Almond blossom, wildflowers, ideal temperatures for exploring'},summer:{temp:'38°C',desc:'Very hot & dry; sea is crystal clear — escape to the beaches'},autumn:{temp:'24°C',desc:'Grape harvest, warm seas through October — arguably the best season'},winter:{temp:'13°C',desc:'Mild on the coast; Etna summit snow-capped; very quiet'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍊',name:'Arancina',desc:'Fried risotto ball — saffron or ragù filled (Palermitans insist on the -a ending)'},
+      {emoji:'🍆',name:'Caponata',desc:'Sweet-sour aubergine, celery & olive stew — served at room temperature'},
+      {emoji:'🐟',name:'Pasta con le Sarde',desc:'Fresh sardines, wild fennel, raisins & pine nuts — pure Sicilian soul food'},
+      {emoji:'🍧',name:'Granita & Brioche',desc:'Semi-frozen coffee or almond slush for breakfast — the local way to start the day'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Catania-Fontanarossa (CTA) or Palermo (PMO) — direct EU & UK flights'},
+      {icon:'🚢',type:'Ferry',desc:'Overnight ferries from Naples, Civitavecchia (Rome) and Genoa'},
+      {icon:'🚌',type:'Interbus / SAIS',desc:'Comfortable coaches link all major towns; cheap and reliable'},
+      {icon:'🚗',type:'Car Rental',desc:'Most flexible — essential for exploring the interior and south coast'},
+    ]
+  },
+
+  meteora:{name:'Meteora',country:'Greece',tagline:'Monasteries in the Sky on Towering Rock Pillars',
+    heroBg:'linear-gradient(135deg,#2a1a08 0%,#604828 55%,#806040 100%)',
+    sights:[
+      {icon:'⛪',name:'Great Meteoron Monastery',desc:'Largest & oldest (1340 AD) — extraordinary Byzantine frescoes and cliff views'},
+      {icon:'🧗',name:'Rock Climbing',desc:'World-class routes on the sandstone monoliths — routes for all grades'},
+      {icon:'🌅',name:'Sunrise Over the Rocks',desc:'Dawn mist rising between the pillars — an otherworldly, ethereal sight'},
+      {icon:'🏙',name:'Kalambaka Town',desc:'Friendly base-camp town with excellent tavernas and guesthouses'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Green hillsides, wildflowers, monasteries fully open — ideal season'},summer:{temp:'32°C',desc:'Hot & sunny — arrive early to beat the coach tour groups'},autumn:{temp:'15°C',desc:'Mist and fog create magical photography conditions'},winter:{temp:'3°C',desc:'Snow-capped pillars, almost no tourists — dramatic beauty'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🥩',name:'Kontosouvli',desc:'Slow-roasted spiced pork on a spit — a speciality of the Thessaly region'},
+      {emoji:'🧀',name:'Feta Saganaki',desc:'Pan-fried feta with honey, sesame seeds and rosemary — addictive'},
+      {emoji:'🍷',name:'Tsipouro',desc:'Local grape-marc spirit — drunk ice-cold, the Greek answer to grappa'},
+      {emoji:'🫒',name:'Horiatiki Salata',desc:'Classic village salad: tomato, cucumber, onion, olives, a thick slab of feta'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Thessaloniki (SKG) — closest airport, 2.5h drive; or Athens (ATH) 4h'},
+      {icon:'🚂',type:'Train',desc:'Direct train to Kalambaka from Athens (4.5h) — scenic mountain journey'},
+      {icon:'🚌',type:'KTEL Bus',desc:'Coaches from Athens (4h) and Thessaloniki (2.5h) to Kalambaka'},
+      {icon:'🚗',type:'Car Rental',desc:'Most flexible — lets you arrive at monasteries before the crowds wake'},
+    ]
+  },
+
+  athens:{name:'Athens',country:'Greece',tagline:'Birthplace of Democracy & Western Civilisation',
+    heroBg:'linear-gradient(135deg,#0e2a5a 0%,#2a4e98 55%,#4a70b8 100%)',
+    sights:[
+      {icon:'🏛',name:'Acropolis & Parthenon',desc:'UNESCO hilltop citadel (447 BC) — go at sunrise or sunset for the light'},
+      {icon:'🏺',name:'National Archaeological Museum',desc:"World's greatest ancient Greek collection — free on Sundays"},
+      {icon:'🛒',name:'Monastiraki & Plaka',desc:'Flea market, street souvlaki and neoclassical lanes below the Acropolis'},
+      {icon:'🌿',name:'Cape Sounion',desc:'Temple of Poseidon on a cliff at the tip of Attica — 1h from Athens by bus'},
+    ],
+    weather:{spring:{temp:'22°C',desc:'Perfect — wildflowers on Attica, Orthodox Easter processions'},summer:{temp:'37°C',desc:'Very hot; Meltemi wind brings relief in July–August'},autumn:{temp:'22°C',desc:'Warm through October — Athens\' best-kept secret season'},winter:{temp:'10°C',desc:'Mild, uncrowded; many museums free on winter Sundays'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍢',name:'Souvlaki',desc:'Grilled pork skewer in warm pitta with tzatziki — the street food icon'},
+      {emoji:'🥮',name:'Spanakopita',desc:'Flaky filo pastry triangles filled with spinach & feta cheese'},
+      {emoji:'🍆',name:'Moussaka',desc:'Layers of aubergine, minced lamb & béchamel — baked until golden'},
+      {emoji:'🥂',name:'Ouzo & Mezedes',desc:'Anise spirit (cloudy when iced) with small plates — the Greek way'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Athens (ATH) — Metro Line 3 Blue to Syntagma Sq (40 min, €10.50)'},
+      {icon:'🚇',type:'Metro',desc:'3 lines cover the major areas; Line 1 goes to Piraeus port for ferries'},
+      {icon:'🚌',type:'Bus & Tram',desc:'OASA buses & coastal tram serve all areas; can be slow in traffic'},
+      {icon:'⛴',type:'Ferry from Piraeus',desc:'Piraeus port: ferries to every Greek island — book ahead in summer'},
+    ]
+  },
+
+  mykonos:{name:'Mykonos',country:'Greece',tagline:"Windmills, White Cubes & the World's Best Parties",
+    heroBg:'linear-gradient(135deg,#082a6a 0%,#1258a0 55%,#2880c8 100%)',
+    sights:[
+      {icon:'⚙️',name:'Kato Mili Windmills',desc:'16th-century Venetian windmills on a promontory — iconic, especially at sunset'},
+      {icon:'🌊',name:'Little Venice',desc:'Colourful balconied houses built directly over the waves of the Aegean'},
+      {icon:'⛪',name:'Paraportiani Church',desc:'Asymmetric whitewashed compound — the most photographed church in Greece'},
+      {icon:'🏖',name:'Paradise & Super Paradise',desc:'World-famous beach clubs with DJs, foam parties and non-stop dancing'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Quiet, wildflowers, dramatic Meltemi winds, empty beaches'},summer:{temp:'28°C',desc:'Peak season — Meltemi keeps it bearable even at peak heat'},autumn:{temp:'22°C',desc:'Still warm seas, retreating crowds — the savvy traveller\'s window'},winter:{temp:'13°C',desc:'Most bars and restaurants closed; very local and peaceful'}},
+    bestTime:'June–September',
+    foods:[
+      {emoji:'🧀',name:'Kopanisti Cheese',desc:'Spicy PDO-protected fermented local cheese — intense and sharp'},
+      {emoji:'🍩',name:'Loukoumades',desc:'Honey & walnut fried dough balls — irresistible street snack'},
+      {emoji:'🐙',name:'Grilled Octopus',desc:'Sun-dried then char-grilled over olive wood — the definitive mezze'},
+      {emoji:'🍸',name:'Sunset Cocktails',desc:'Little Venice waterfront bars — arrive an hour before the sun goes down'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Mykonos (JMK) — direct from Athens (45 min) and many EU cities in summer'},
+      {icon:'⛴',type:'Ferry',desc:'High-speed catamaran from Piraeus 2.5h or Rafina 2h — book well ahead'},
+      {icon:'🚌',type:'KTEL Bus',desc:'Town-to-beach buses; frequent in summer, timetable at the bus stop'},
+      {icon:'🛵',type:'ATV & Quad',desc:'Most popular local transport — rent for a day and explore freely'},
+    ]
+  },
+
+  santorini:{name:'Santorini',country:'Greece',tagline:"Caldera Views, Blue Domes & the World's Best Sunsets",
+    heroBg:'linear-gradient(135deg,#08185a 0%,#203888 55%,#3860c0 100%)',
+    sights:[
+      {icon:'🌅',name:'Oia Sunset',desc:"Earth's most celebrated sunset — stake out a spot by 4pm in peak summer"},
+      {icon:'⛪',name:'Blue Dome Churches',desc:'The iconic cobalt domes against the white caldera — best at dawn, before crowds'},
+      {icon:'🏖',name:'Red & Black Sand Beaches',desc:'Dramatic volcanic crimson and obsidian sands — unique in all the Mediterranean'},
+      {icon:'🍷',name:'Caldera Wine Tasting',desc:'Assyrtiko from 3,500-year-old basket-weave vines growing in volcanic soil'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Quiet & mild — hiking trails open, best photography light'},summer:{temp:'28°C',desc:'Meltemi wind is a genuine lifesaver; pack a light layer for evenings'},autumn:{temp:'22°C',desc:'Warm seas through October — romantic, less frantic, better prices'},winter:{temp:'14°C',desc:'Mostly closed but strikingly atmospheric for serious photographers'}},
+    bestTime:'May–October',
+    foods:[
+      {emoji:'🍅',name:'Tomatokeftedes',desc:'Fried Santorinian cherry tomato fritters — a genuine island speciality'},
+      {emoji:'🫘',name:'Fava',desc:'Silky yellow split pea purée with capers, lemon and good olive oil'},
+      {emoji:'🦞',name:'Lobster Pasta',desc:'Caldera-view taverna classic — expensive, but worth every euro spent'},
+      {emoji:'🍷',name:'Assyrtiko',desc:'Crisp, mineral, volcanic white wine — arguably Greece\'s finest'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Santorini (JTR) — 45 min from Athens; direct charter flights from UK & EU'},
+      {icon:'⛴',type:'Ferry',desc:'From Piraeus: 5–8h conventional or 4.5h high-speed Seajet'},
+      {icon:'🚌',type:'KTEL Bus',desc:'Fira to Oia, Perissa, Kamari — cheap but infrequent; check the timetable'},
+      {icon:'🛵',type:'ATV Rental',desc:'Best for independence — explore remote beaches and wineries at your pace'},
+    ]
+  },
+
+  crete:{name:'Crete',country:'Greece',tagline:"Minoan Civilisation, Gorges & Legendary Hospitality",
+    heroBg:'linear-gradient(135deg,#1a4810 0%,#3a7828 55%,#60a040 100%)',
+    sights:[
+      {icon:'🏛',name:'Palace of Knossos',desc:'Bronze Age Minoan palace (1700 BC) — Europe\'s oldest city, walk where the Minotaur lurked'},
+      {icon:'🏔',name:'Samaria Gorge',desc:'16km hike through Europe\'s longest gorge — open 1 May–31 October only'},
+      {icon:'🏖',name:'Balos Lagoon',desc:'Remote turquoise lagoon reached only by boat or rough 4WD track'},
+      {icon:'🍷',name:'Heraklion Wine Country',desc:"Crete's thriving wine scene — Kotsifali reds, Vilana whites, estate tours"},
+    ],
+    weather:{spring:{temp:'22°C',desc:'Wildflowers, Gorge opens May 1, perfect hiking temperatures'},summer:{temp:'32°C',desc:'Hot, sunny & dry — sea is crystal clear and magnificently warm'},autumn:{temp:'24°C',desc:'Warm seas through November — olive harvest throughout October'},winter:{temp:'15°C',desc:'Mild on the coast; mountain villages often have snow — peaceful'}},
+    bestTime:'May–October',
+    foods:[
+      {emoji:'🫒',name:'Cretan Olive Oil',desc:"Among the world's finest EVOO — buy a tin from a local cooperative"},
+      {emoji:'🧈',name:'Dakos',desc:'Barley rusk soaked in oil, piled with tomatoes, feta and dried oregano'},
+      {emoji:'🐌',name:'Snails (Chochlioi)',desc:'Pan-fried with rosemary & wine vinegar — a cherished Cretan delicacy'},
+      {emoji:'🍖',name:'Lamb Stamnagathi',desc:'Slow-cooked lamb with foraged mountain greens — earthy and extraordinary'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Heraklion (HER) or Chania (CHQ) — direct from UK & EU capitals'},
+      {icon:'⛴',type:'Overnight Ferry',desc:'From Piraeus to Heraklion (9–12h) — a classic Greek island travel ritual'},
+      {icon:'🚌',type:'KTEL Bus',desc:'Reliable services linking all north-coast cities at low cost'},
+      {icon:'🚗',type:'Car Rental',desc:'Essential for south coast, mountain villages and getting to Balos Lagoon'},
+    ]
+  },
+
+  rhodes:{name:'Rhodes',country:'Greece',tagline:"Knights' Fortresses, Colossus Myths & Crystal Waters",
+    heroBg:'linear-gradient(135deg,#281808 0%,#604028 55%,#886040 100%)',
+    sights:[
+      {icon:'🏰',name:'Medieval Old Town',desc:'UNESCO-listed Crusader city — best-preserved medieval town in all of Europe'},
+      {icon:'🗿',name:'Site of the Colossus',desc:"One of the Seven Wonders (280 BC) — bronze deer statues mark the entrance of the harbour"},
+      {icon:'🏛',name:'Acropolis of Lindos',desc:'Doric temple on a clifftop above the gleaming white village of Lindos'},
+      {icon:'🦋',name:'Valley of the Butterflies',desc:'Summer migration of Jersey tiger moths — a unique and magical natural spectacle'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Warm & green — low season prices, uncrowded beaches, perfect walking'},summer:{temp:'30°C',desc:'Hot & reliably sunny — warmest island in Greece consistently'},autumn:{temp:'24°C',desc:'Sea still warm in October, tourists gone, paradise reclaimed'},winter:{temp:'14°C',desc:'Mild winters, some rain, Old Town atmospheric and very quiet'}},
+    bestTime:'May–October',
+    foods:[
+      {emoji:'🍯',name:'Pitaroudia',desc:'Crispy chickpea fritters flavoured with mint and cumin — perfect mezze'},
+      {emoji:'🐐',name:'Myzithra with Honey',desc:'Soft fresh whey cheese drizzled with local thyme honey — sublime'},
+      {emoji:'🍷',name:'CAIR Sparkling Wine',desc:"Rhodes' own cooperative sparkling wine — remarkably good quality"},
+      {emoji:'🫒',name:'Rhodes Olive Oil',desc:'Protected designation groves around Lindos and the interior valleys'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Rhodes (RHO) — direct charter and scheduled flights from UK & EU'},
+      {icon:'⛴',type:'Ferry',desc:'From Piraeus: 11–16h conventional; also via the Dodecanese island chain'},
+      {icon:'🚌',type:'KTEL Bus',desc:'Two stations (east & west side); covers all major towns and beaches'},
+      {icon:'🚗',type:'Car Rental',desc:'Highly recommended to explore the interior, Lindos, and the far south coast'},
+    ]
+  },
+
+  tokyo:{name:'Tokyo',country:'Japan',tagline:'Neon Megacity Where Ancient Temples Meet Futuristic Towers',
+    heroBg:'linear-gradient(135deg,#1a0018 0%,#6a0020 55%,#bc002d 100%)',
+    sights:[
+      {icon:'⛩',name:'Senso-ji Temple',desc:'Tokyo\'s oldest and most iconic temple in Asakusa — lantern gate, incense smoke, and historic Nakamise shopping lane'},
+      {icon:'🌆',name:'Shibuya Crossing',desc:'World\'s busiest intersection — best viewed from the Shibuya Sky rooftop 229m above the scramble'},
+      {icon:'🗼',name:'Tokyo Tower & Skytree',desc:'Tokyo Tower (333m, 1958) and the newer Skytree (634m) — both offer jaw-dropping city panoramas'},
+      {icon:'🌸',name:'Shinjuku Gyoen',desc:'Vast garden with 1,000 cherry trees — the finest hanami spot in Tokyo, especially in late March–April'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Cherry blossom season (late March–April) — the most magical time to visit'},summer:{temp:'33°C',desc:'Hot, very humid; vibrant festivals and fireworks every weekend'},autumn:{temp:'20°C',desc:'Brilliant foliage, cool temperatures, ideal sightseeing weather'},winter:{temp:'6°C',desc:'Cool & dry with blue skies — Mt. Fuji perfectly visible from the city'}},
+    bestTime:'March–May & October–November',
+    foods:[
+      {emoji:'🍜',name:'Ramen',desc:'Tonkotsu, shoyu, miso or shio — Tokyo\'s ramen alleys are legendary; queue willingly'},
+      {emoji:'🍣',name:'Omakase Sushi',desc:'Chef\'s choice at a counter — from neighbourhood kaiten to Michelin 3-star omakase'},
+      {emoji:'🍢',name:'Yakitori',desc:'Charcoal-grilled chicken skewers under the railway arches of Yurakucho — beer mandatory'},
+      {emoji:'🍵',name:'Matcha Sweets',desc:'Matcha parfaits, mochi and soft-serve — a whole world of green tea confectionery'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Haneda (HND) is closest — 30 min by Keikyu train. Narita (NRT) 60 min by Narita Express'},
+      {icon:'🚇',type:'Metro & JR',desc:'Tokyo Metro + Toei lines cover everything; Suica IC card works city-wide and on JR'},
+      {icon:'🚅',type:'Shinkansen',desc:'Bullet train: Kyoto 2h20, Osaka 2h30, Hiroshima 4h — buy a JR Pass before arrival'},
+      {icon:'🚌',type:'Night Bus',desc:'Overnight highway buses to Kyoto, Osaka & beyond — cheap and surprisingly comfortable'},
+    ]
+  },
+
+  kyoto:{name:'Kyoto',country:'Japan',tagline:'Imperial Capital of 1,200 Years — Temples, Geisha & Bamboo Groves',
+    heroBg:'linear-gradient(135deg,#1a1040 0%,#5a2080 55%,#a050b0 100%)',
+    sights:[
+      {icon:'⛩',name:'Fushimi Inari Shrine',desc:'Thousands of vermilion torii gates winding up the mountain — hike the full 2h trail to escape the crowds'},
+      {icon:'🏯',name:'Kinkaku-ji (Golden Pavilion)',desc:'Three-storey Zen pavilion sheathed in gold leaf reflected in a still pond — arrive at opening time'},
+      {icon:'🎋',name:'Arashiyama Bamboo Grove',desc:'Towering green stalks filtering sunlight at dawn — go before 7am for the ethereal experience'},
+      {icon:'🏮',name:'Gion District',desc:'Kyoto\'s most atmospheric geisha quarter — cobbled Hanamikoji lane at dusk for best sightings'},
+    ],
+    weather:{spring:{temp:'19°C',desc:'Cherry blossom early April — Maruyama Park is spectacular; book accommodation months ahead'},summer:{temp:'35°C',desc:'Humid & crowded; Gion Matsuri festival in July is unmissable'},autumn:{temp:'18°C',desc:'Brilliant red and gold foliage November — Tofuku-ji and Eikan-do are breathtaking'},winter:{temp:'5°C',desc:'Rare snow on temples is magical; very few tourists, ideal for contemplative visits'}},
+    bestTime:'March–May & October–November',
+    foods:[
+      {emoji:'🍱',name:'Kaiseki Ryori',desc:'Japan\'s most refined multi-course cuisine — seasonal, artful, and an unmissable experience in Kyoto'},
+      {emoji:'🥢',name:'Tofu Ryori',desc:'Delicate Kyoto-style tofu dishes at a Zen temple restaurant — simple, elegant, profound'},
+      {emoji:'🍵',name:'Matcha Ceremony',desc:'Traditional tea ceremony in a tatami room — serene antidote to the tourist bustle outside'},
+      {emoji:'🥟',name:'Obanzai',desc:'Kyoto\'s daily home cooking — small vegetable and tofu dishes at an izakaya counter'},
+    ],
+    transport:[
+      {icon:'🚅',type:'Shinkansen',desc:'From Tokyo: 2h20 on the Nozomi. Shin-Osaka: 15 min. Hiroshima: 45 min on Nozomi'},
+      {icon:'🚌',type:'City Buses',desc:'RAKU BUS 100 & 101 connect all major temples — buy a day pass (¥700) at the station'},
+      {icon:'🚲',type:'Cycling',desc:'Flat city streets make Kyoto the best Japanese city for cycling — rental shops everywhere'},
+      {icon:'🚋',type:'Keifuku Tram',desc:'Vintage tram to Arashiyama from Shijo-Omiya — scenic and charming'},
+    ]
+  },
+
+  osaka:{name:'Osaka',country:'Japan',tagline:"Japan's Kitchen — Street Food, Neon Nights & Merchant Spirit",
+    heroBg:'linear-gradient(135deg,#3a1500 0%,#c85000 55%,#f08020 100%)',
+    sights:[
+      {icon:'🏯',name:'Osaka Castle',desc:'Magnificent 1583 castle in a moat-ringed park — especially stunning with cherry blossoms in spring'},
+      {icon:'🌃',name:'Dotonbori',desc:'Neon-drenched canal district — the giant Glico running man sign, mechanical crab, and infinite street food'},
+      {icon:'🎢',name:'Universal Studios Japan',desc:'World-class theme park with Harry Potter, Mario Kart and One Piece attractions'},
+      {icon:'🛒',name:'Kuromon Ichiba Market',desc:'The kitchen of Osaka — 180 stalls selling fresh seafood, beef, pickles and street snacks'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Cherry blossom and Osaka Castle park picnics — comfortable and lively'},summer:{temp:'34°C',desc:'Very hot and humid; Tenjin Matsuri festival (July 25) is spectacular'},autumn:{temp:'20°C',desc:'Best season — cool, colourful foliage, ideal for eating and exploring'},winter:{temp:'7°C',desc:'Mild winters; illuminations at Osaka Castle and Namba are festive'}},
+    bestTime:'March–May & September–November',
+    foods:[
+      {emoji:'🐙',name:'Takoyaki',desc:"Octopus balls — crispy outside, molten inside, topped with mayo and bonito flakes. Osaka's soul food"},
+      {emoji:'🥞',name:'Okonomiyaki',desc:'Savoury cabbage pancake with pork, seafood or cheese — cook it yourself at a teppan grill'},
+      {emoji:'🍡',name:'Kushikatsu',desc:'Deep-fried skewers of anything imaginable — follow the golden rule: no double-dipping in the sauce'},
+      {emoji:'🍜',name:'Osaka Ramen',desc:'Tantan-men style spicy sesame ramen is the local take — rich, warming, addictive'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Kansai International (KIX) — Haruka Express to Namba in 50 min; also serves Kyoto direct'},
+      {icon:'🚇',type:'Osaka Metro',desc:'8 lines cover the city efficiently; Midosuji Line is the key north-south artery'},
+      {icon:'🚅',type:'Shinkansen',desc:'Shin-Osaka station: Tokyo 2h30, Kyoto 15 min, Hiroshima 50 min on Nozomi'},
+      {icon:'🎫',type:'Osaka Amazing Pass',desc:'Unlimited subway + free entry to 40+ attractions — excellent value for sightseeing days'},
+    ]
+  },
+
+  hiroshima:{name:'Hiroshima',country:'Japan',tagline:'City of Peace — Moving History & Stunning Island Shrine',
+    heroBg:'linear-gradient(135deg,#0a1830 0%,#1a4060 55%,#2870a0 100%)',
+    sights:[
+      {icon:'🕊',name:'Peace Memorial Park',desc:'Moving 122,000m² park of monuments, cenotaphs and eternal flame to the 1945 atomic bomb victims'},
+      {icon:'🏚',name:'Atomic Bomb Dome',desc:'UNESCO-listed preserved ruin — the only structure near the hypocentre that survived, preserved as is'},
+      {icon:'⛩',name:'Itsukushima Shrine (Miyajima)',desc:'Floating torii gate rising from Seto Inland Sea — a short ferry from Hiroshima; hike Mt. Misen above'},
+      {icon:'🏯',name:'Hiroshima Castle',desc:'The "Carp Castle" rebuilt after the bombing — houses a museum tracing feudal Hiroshima history'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Cherry blossom in Hiroshima Peace Park — deeply poignant and beautiful'},summer:{temp:'32°C',desc:'Hot; Miyajima is stunning in summer light; Peace ceremonies on August 6'},autumn:{temp:'20°C',desc:'Excellent hiking on Mt. Misen; colourful foliage on Miyajima in November'},winter:{temp:'5°C',desc:'Quiet, sometimes snow on Miyajima — the shrine in snow is unforgettable'}},
+    bestTime:'March–May & October–November',
+    foods:[
+      {emoji:'🦪',name:'Hiroshima Oysters',desc:'Largest oyster production in Japan — grilled on the shell with lemon, or in an oyster hot pot'},
+      {emoji:'🥞',name:'Hiroshima Okonomiyaki',desc:'Layered style (not mixed) with noodles, pork and kimchi — the great Osaka vs Hiroshima rivalry'},
+      {emoji:'🍁',name:'Momiji Manju',desc:'Maple-leaf shaped cakes filled with sweet azuki bean paste — the famous Miyajima souvenir'},
+      {emoji:'🍶',name:'Hiroshima Sake',desc:'Soft local water creates exceptionally smooth sake — the Saijo district is a national sake capital'},
+    ],
+    transport:[
+      {icon:'🚅',type:'Shinkansen',desc:'Nozomi: Tokyo 4h, Osaka 50 min, Kyoto 45 min. Hiroshima station is central'},
+      {icon:'🚃',type:'Hiroshima Tram',desc:'Historic street tram network — Line 2/6 to Miyajima Pier; the oldest tram still running in Japan'},
+      {icon:'⛴',type:'Ferry to Miyajima',desc:'15-min JR ferry from Miyajimaguchi — covered by JR Pass; runs frequently all day'},
+      {icon:'🚌',type:'Sightseeing Bus',desc:'Meipuru-pu loop bus covers Peace Park, Atomic Dome and the castle efficiently'},
+    ]
+  },
+
+  fuji:{name:'Mount Fuji',country:'Japan',tagline:"Japan's Sacred Summit — Perfect Cone Rising Above Lake & Cloud",
+    heroBg:'linear-gradient(135deg,#0a1a38 0%,#1a3868 55%,#d0e8f8 100%)',
+    sights:[
+      {icon:'🗻',name:'Summit Crater Rim',desc:'Climb to the 3,776m summit (July–early September) via the Yoshida Trail — 6h up, 4h down; start at night for the sunrise'},
+      {icon:'🏞',name:'Fuji Five Lakes (Fujigoko)',desc:'Kawaguchiko offers the classic Fuji reflection — best November–February with snow cap; rent a boat or cycle the shore'},
+      {icon:'♨️',name:'Hakone Hot Springs',desc:'Onsen resort an hour away — Owakudani volcanic valley, the Fuji-view ryokan, and the ropeway over sulphur vents'},
+      {icon:'🗼',name:'Chureito Pagoda',desc:'Five-storey red pagoda with Mt. Fuji framed behind — Japan\'s most reproduced photograph; climb 398 steps from the base'},
+    ],
+    weather:{spring:{temp:'12°C',desc:'Snow still on summit; Fuji visible through clear spring air with cherry blossom foreground'},summer:{temp:'22°C',desc:'Climbing season July–mid September; summit can be 5°C — bring warm layers'},autumn:{temp:'10°C',desc:'First snow cap appears October; spectacular foliage in Hakone and the Five Lakes'},winter:{temp:'0°C',desc:'Fuji at its most majestic — fully snow-capped; no climbing but perfect for photography'}},
+    bestTime:'October–February for views; July–August for climbing',
+    foods:[
+      {emoji:'🍜',name:'Hoto Noodles',desc:'Wide flat udon noodles in miso and pumpkin broth — the warming Yamanashi mountain dish'},
+      {emoji:'🍎',name:'Fuji Apples',desc:'World-famous Fuji apples grown on Yamanashi slopes — fresh, as juice, or in apple pie'},
+      {emoji:'🥚',name:'Onsen Tamago',desc:'Eggs slow-cooked in Hakone\'s sulphur hot springs — served with dashi and scallion'},
+      {emoji:'🍶',name:'Koshu Wine & Sake',desc:'Yamanashi prefecture is Japan\'s wine capital; Koshu white wine pairs perfectly with local fish'},
+    ],
+    transport:[
+      {icon:'🚌',type:'Highway Bus',desc:'Keio & Fujikyu buses from Shinjuku station to Kawaguchiko (2h, ¥1,750) — most direct route'},
+      {icon:'🚃',type:'Fujikyuko Line',desc:'Scenic mountain railway from Otsuki (transfer from JR) to Fujikyu Highland and Kawaguchiko'},
+      {icon:'🚅',type:'Shinkansen via Shin-Fuji',desc:'Hikari/Kodama to Shin-Fuji (1h from Tokyo) — then local bus to the 5th Station (1h)'},
+      {icon:'🚗',type:'Car Rental',desc:'Most flexible for the Five Lakes, Hakone loop, and Chureito early morning before the crowds'},
+    ]
+  },
+
+  naples:{name:'Naples',country:'Italy',tagline:'Birthplace of Pizza, Baroque Grandeur & Gateway to Pompeii',
+    heroBg:'linear-gradient(135deg,#1a3050 0%,#2a5888 55%,#3870a8 100%)',
+    sights:[
+      {icon:'🍕',name:'Spaccanapoli & Historic Centre',desc:'UNESCO-listed street slicing the city in two — baroque churches, street art, artisans and the finest pizza on earth'},
+      {icon:'🏛',name:'National Archaeological Museum',desc:'World\'s finest Roman artefacts — Pompeii mosaics, Farnese Hercules, and the Secret Cabinet of erotic art'},
+      {icon:'🏰',name:'Castel dell\'Ovo',desc:'Norman sea-castle on a tiny islet in the bay — free entry and stunning Vesuvius panorama across the water'},
+      {icon:'🌋',name:'Vesuvius & Pompeii',desc:'Active volcano 30 min away — climb the rim, then descend to Pompeii for a 79 AD Roman city frozen in time'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Warm & sunny — ideal for Pompeii and coastal day trips'},summer:{temp:'32°C',desc:'Hot & vibrant; Ferragosto beach culture at its peak on the bay'},autumn:{temp:'22°C',desc:'Best season — fewer tourists, warm sea, harvest food festivals'},winter:{temp:'10°C',desc:'Mild; Christmas presepe nativity scenes are world-famous in Naples'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍕',name:'Pizza Napoletana',desc:'DOP-protected Neapolitan pizza — soft, chewy, slightly charred, eaten folded'},
+      {emoji:'🥐',name:'Sfogliatella',desc:'Shell-shaped pastry filled with ricotta and candied citrus — Naples\' most beloved breakfast'},
+      {emoji:'🍝',name:'Spaghetti alle Vongole',desc:'Clams, white wine, garlic, parsley — pure Neapolitan coastal perfection'},
+      {emoji:'🍮',name:'Pastiera Napoletana',desc:'Ricotta and wheat berry Easter tart — fragrant with orange blossom water'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Naples (NAP) — well-connected to all European hubs; Alibus to city centre 20 min'},
+      {icon:'🚂',type:'High-Speed Rail',desc:'Frecciarossa: Rome 1h10, Milan 4h; Circumvesuviana local train to Pompeii & Sorrento'},
+      {icon:'🚇',type:'Metro',desc:'Lines 1 & 6 cover the city; funiculars climb to the Vomero hilltop district'},
+      {icon:'⛴',type:'Ferry',desc:'Hydrofoils to Capri (45 min), Ischia, and Amalfi — from Beverello and Molo Beverello ports'},
+    ]
+  },
+
+  'cinque-terre':{name:'Cinque Terre',country:'Italy',tagline:'Five Colourful Clifftop Villages Above the Ligurian Sea',
+    heroBg:'linear-gradient(135deg,#0e3860 0%,#1a6898 55%,#28a0c8 100%)',
+    sights:[
+      {icon:'🏘',name:'Vernazza',desc:'Most picturesque of the five — a natural harbour, medieval tower and pastel houses cascading to the sea'},
+      {icon:'🥾',name:'Sentiero Azzurro',desc:'The Blue Trail linking all five villages — 12km of clifftop coastal hiking with jaw-dropping sea views'},
+      {icon:'🎨',name:'Manarola at Night',desc:'Best photographed after dark — the illuminated village reflected in the rocky harbour is unforgettable'},
+      {icon:'🌊',name:'Riomaggiore',desc:'Southernmost village with a dramatic main street running steeply to the sea and vibrant wine culture'},
+    ],
+    weather:{spring:{temp:'19°C',desc:'Wildflowers on the trails, fewer crowds, ideal for hiking the Sentiero Azzurro'},summer:{temp:'28°C',desc:'Hot & packed; hiking trails sometimes closed — swim and take the train between villages'},autumn:{temp:'20°C',desc:'Best for hiking — clear skies, warm seas, harvesting the legendary local anchovies'},winter:{temp:'10°C',desc:'Quiet and photogenic; most restaurants and shops closed November–February'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🐟',name:'Acciughe (Anchovies)',desc:'Salt-cured Monterosso anchovies — the finest in all Italy, eaten on house-made focaccia'},
+      {emoji:'🥙',name:'Focaccia al Formaggio',desc:'Thin crispy flatbread filled with stracchino cheese — a Ligurian classic from nearby Recco'},
+      {emoji:'🍷',name:'Sciacchetrà',desc:'Rare sweet passito wine from coastal terraced vineyards — liquid amber of Cinque Terre'},
+      {emoji:'🫒',name:'Ligurian Pesto',desc:'Basil, pine nuts, Parmigiano & Pecorino — the original recipe, made in a marble mortar'},
+    ],
+    transport:[
+      {icon:'🚂',type:'Cinque Terre Express',desc:'Local train hops between all five villages in minutes — buy the Cinque Terre Card (includes trails)'},
+      {icon:'⛴',type:'Seasonal Ferry',desc:'Boats run between all villages in summer — scenic alternative to the trail and train'},
+      {icon:'✈️',type:'By Air',desc:'Genoa (GOA) 1.5h or Pisa (PSA) 1.5h — then direct train to La Spezia and the villages'},
+      {icon:'🚗',type:'By Car',desc:'Park at La Spezia or Levanto and take the train in — cars banned from all village centres'},
+    ]
+  },
+
+  'lake-como':{name:'Lake Como',country:'Italy',tagline:'Europe\'s Most Glamorous Lake — Villas, Alps & Silk Heritage',
+    heroBg:'linear-gradient(135deg,#0a2a50 0%,#1a5888 55%,#6090b8 100%)',
+    sights:[
+      {icon:'🏛',name:'Villa del Balbianello',desc:'18th-century villa on a wooded promontory — James Bond & Star Wars filmed here; book garden tours well ahead'},
+      {icon:'🌺',name:'Villa Carlotta',desc:'Neoclassical villa with 14 acres of azalea and rhododendron gardens above the lake in spring'},
+      {icon:'⛵',name:'Bellagio',desc:'The pearl of Lake Como — elegant boutiques, ferry crossings, and the finest lake panoramas from its hilltop'},
+      {icon:'🏔',name:'Como–Brunate Funicular',desc:'Steep cable car to mountain village with Alpine views over the lake to the Lombard plain below'},
+    ],
+    weather:{spring:{temp:'17°C',desc:'Azalea season — villa gardens at their absolute peak; far fewer tourists than summer'},summer:{temp:'27°C',desc:'Busy & warm — ideal for boating, swimming and aperitivo on the lakeside promenades'},autumn:{temp:'16°C',desc:'Misty, atmospheric and colourful — arguably the most romantic season on the lake'},winter:{temp:'5°C',desc:'Quiet and dramatic; snow on the Alps reflects in the still, grey lake — very peaceful'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🐟',name:'Missoltino',desc:'Sun-dried agone fish preserved in bay leaves and olive oil — a Como delicacy since medieval times'},
+      {emoji:'🫘',name:'Pizzoccheri',desc:'Buckwheat pasta with cabbage, potato and Valtellina mountain cheese — comforting and earthy'},
+      {emoji:'🍷',name:'Valtellina Nebbiolo',desc:'Alpine Lombardy red wine from terraced vineyards — elegant, structured and hugely underrated'},
+      {emoji:'🧵',name:'Como Silk',desc:'Como produces 80% of Europe\'s silk — visit a studio workshop for coffee and a silk scarf souvenir'},
+    ],
+    transport:[
+      {icon:'🚂',type:'Train from Milan',desc:'Milan Cadorna to Como San Giovanni 40 min; or Milan Centrale to Como Lago 1h — both quick'},
+      {icon:'⛴',type:'Lake Ferries',desc:'Navigazione Laghi runs all year — slow ferries and fast hydrofoils between all lakeside towns'},
+      {icon:'✈️',type:'By Air',desc:'Milan Malpensa (MXP) — 45 min by taxi or 1h by public transport to Como'},
+      {icon:'🛶',type:'Private Boat',desc:'Rent an electric boat for the afternoon — the perfect way to explore private villas and hidden coves'},
+    ]
+  },
+
+  pompeii:{name:'Pompeii',country:'Italy',tagline:'Frozen in Time — Roman City Preserved by Vesuvius (79 AD)',
+    heroBg:'linear-gradient(135deg,#5a1808 0%,#9a3020 55%,#6a4828 100%)',
+    sights:[
+      {icon:'🌋',name:'Mount Vesuvius',desc:'Active volcano (1,281m) with a 1km-wide crater — guided hike to the rim, 30 min from the top car park'},
+      {icon:'🏛',name:'Forum, Temples & Lupanar',desc:'Civic heart of ancient Pompeii — temples of Jupiter & Apollo, the Basilica law court, and the famous brothel'},
+      {icon:'🎨',name:'Villa dei Misteri',desc:'The finest surviving Roman frescoes (60 BC) — a complete cycle of life-size Dionysian initiation rites'},
+      {icon:'🏚',name:'Herculaneum',desc:'Pompeii\'s better-preserved neighbour — two-storey houses, wooden furniture and vivid mosaics still intact'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Perfect — wildflowers between the ruins, comfortable for long morning walks'},summer:{temp:'32°C',desc:'Very hot — arrive at 8am, wear a hat, carry 2L water; site is largely unshaded'},autumn:{temp:'22°C',desc:'Best season — warm golden light, fewer visitors, dramatic storm skies over Vesuvius'},winter:{temp:'10°C',desc:'Cool and quiet — uncrowded, reduced hours; Vesuvius summit may be snow-capped'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍕',name:'Pizza from Naples',desc:'30 min from Naples by Circumvesuviana — pizza pilgrimage to the source is absolutely mandatory'},
+      {emoji:'🍮',name:'Delizia al Limone',desc:'Sorrento\'s lemon dome cake — sponge soaked in limoncello cream, a Campania icon'},
+      {emoji:'🧀',name:'Mozzarella di Bufala',desc:'From buffalo farms on the Campania plains — eat same day, with just olive oil and fresh basil'},
+      {emoji:'🍷',name:'Lacryma Christi',desc:'Wine grown on Vesuvius volcanic slopes — white, rosé and red from uniquely mineral-rich soils'},
+    ],
+    transport:[
+      {icon:'🚂',type:'Circumvesuviana',desc:'Naples Porta Nolana to Pompeii Scavi station in 35 min — runs every 30 min all day'},
+      {icon:'🚌',type:'Bus to Vesuvius',desc:'EAV buses from Pompeii station to the Vesuvius crater car park — 30 min journey up'},
+      {icon:'✈️',type:'By Air',desc:'Naples (NAP) is the gateway airport — Pompeii is 30 km south-east along the coast'},
+      {icon:'🚗',type:'By Car',desc:'A3 Autostrada: exit Pompei Ovest or Est; parking available near the Porta Marina entrance'},
+    ]
+  },
+
+  thessaloniki:{name:'Thessaloniki',country:'Greece',tagline:'Byzantine Capital of Northern Greece — Culture, Gastronomy & Markets',
+    heroBg:'linear-gradient(135deg,#2a0830 0%,#6a1858 55%,#9a3878 100%)',
+    sights:[
+      {icon:'🏛',name:'White Tower',desc:'Iconic 15th-century Ottoman tower on the waterfront — city\'s defining symbol and a fine history museum'},
+      {icon:'⛪',name:'Hagia Sophia & Rotunda',desc:'Early Byzantine churches with breathtaking mosaic interiors — UNESCO World Heritage sites in the city centre'},
+      {icon:'🏺',name:'Archaeological Museum',desc:'Macedonian royal tomb treasures — gold larnax, wreaths and jewellery from the era of Alexander the Great'},
+      {icon:'🛒',name:'Modiano Market',desc:'Covered 1920s market in an Art Deco iron hall — olives, herbs, cheese and the freshest produce in Greece'},
+    ],
+    weather:{spring:{temp:'19°C',desc:'Pleasant — Orthodox Easter processions in Thessaloniki are spectacular'},summer:{temp:'32°C',desc:'Hot but less crowded than Athens; waterfront breezes along the promenade save the day'},autumn:{temp:'20°C',desc:'International Film Festival in November; harvest produce fills the markets'},winter:{temp:'7°C',desc:'Cool, sometimes rainy; Byzantine museum collections are at their best in the off-season'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🥐',name:'Bougatsa',desc:'Crispy filo filled with semolina custard, dusted with cinnamon and icing sugar — a Thessaloniki morning ritual'},
+      {emoji:'🥩',name:'Pastourma',desc:'Cured spiced beef with fenugreek — the Byzantine preserved meat that defines Thessaloniki\'s food culture'},
+      {emoji:'🫒',name:'Kavala Olives',desc:'Fat green olives from northern Greece, marinated with garlic and citrus peel — sold in every market stall'},
+      {emoji:'🍷',name:'Naoussa Xinomavro',desc:'Northern Greece\'s premier red wine — bold, tannic, ages beautifully like an Italian Barolo'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Thessaloniki Macedonia (SKG) — direct from many EU cities; 20 min taxi to city centre'},
+      {icon:'🚂',type:'Train',desc:'Athens to Thessaloniki: 4h by Intercity Express through the dramatic Tempi valley gorge'},
+      {icon:'🚌',type:'KTEL Bus',desc:'Extensive bus network connects Thessaloniki to all of northern Greece and the Balkans'},
+      {icon:'🚶',type:'On Foot',desc:'Compact city centre — White Tower, waterfront and markets all within easy walking distance'},
+    ]
+  },
+
+  delphi:{name:'Delphi',country:'Greece',tagline:'Navel of the Ancient World — Oracle of Apollo & Sacred Parnassos',
+    heroBg:'linear-gradient(135deg,#3a2808 0%,#806030 55%,#b09060 100%)',
+    sights:[
+      {icon:'🏛',name:'Temple of Apollo',desc:'The oracle\'s home (373 BC) — where the Pythia delivered prophecies that shaped all of ancient Greek history'},
+      {icon:'🏺',name:'Delphi Museum',desc:'Bronze Charioteer (478 BC) and Siphnian Treasury friezes — finest classical bronzes in all of Greece'},
+      {icon:'🏟',name:'Ancient Theatre & Stadium',desc:'4th-century BC theatre seating 5,000 above the sanctuary — astonishing mountain panoramas from every seat'},
+      {icon:'🌿',name:'Arachova Village',desc:'Charming mountain village 10km away — fur shops, local wine, thyme honey and the Parnassos ski resort above'},
+    ],
+    weather:{spring:{temp:'17°C',desc:'Wildflowers on Parnassos, quiet sanctuary — best season to feel the oracle\'s stillness'},summer:{temp:'30°C',desc:'Hot but the altitude keeps it bearable — evening is magnificent in golden light'},autumn:{temp:'15°C',desc:'Clear skies, olive harvest in the valley below, almost no tour groups'},winter:{temp:'5°C',desc:'Snow on Parnassos above; the sanctuary is dramatically empty — truly magical'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🍯',name:'Arachova Honey',desc:'Mountain thyme honey from Parnassos hives — extraordinary depth of flavour, buy directly from producers'},
+      {emoji:'🧀',name:'Formaella Arachovas',desc:'PDO-protected hard cheese from the Arachova plateau — grilled as saganaki with honey drizzle'},
+      {emoji:'🍷',name:'Arachova Red Wine',desc:'Local Mavrodaphne-based wine from village cellars — hearty, warming and deeply rustic'},
+      {emoji:'🫒',name:'Amphissa Olives',desc:'Black table olives from the Amphissa valley directly below Delphi — among Greece\'s finest'},
+    ],
+    transport:[
+      {icon:'🚌',type:'KTEL Bus',desc:'From Athens Liossion terminal: 3h to Delphi — scenic mountain route through Boeotia'},
+      {icon:'🚗',type:'By Car',desc:'Athens to Delphi: 2h30 via E65 motorway — most flexible for combining with Meteora or Olympia'},
+      {icon:'🚌',type:'Day Tour',desc:'Numerous Athens operators run full-day guided Delphi tours (often combined with Arachova)'},
+      {icon:'🏔',type:'Parnassos Ski Resort',desc:'Greece\'s largest ski resort above Arachova — open December to April with 20 runs'},
+    ]
+  },
+
+  corfu:{name:'Corfu',country:'Greece',tagline:'Emerald Island of the Ionian — Venetian Old Town & Crystal Coves',
+    heroBg:'linear-gradient(135deg,#0a3820 0%,#1a6838 55%,#3a9858 100%)',
+    sights:[
+      {icon:'🏛',name:'Corfu Old Town',desc:'UNESCO-listed Venetian townscape — narrow kantounia lanes, colonnaded Liston esplanade, two imposing Venetian forts'},
+      {icon:'🏰',name:'Achilleion Palace',desc:'1890 neoclassical palace of Empress Sisi — hilltop gardens with stunning sea views over to Albania'},
+      {icon:'🏖',name:'Paleokastritsa',desc:'The island\'s most dramatic coastline — emerald sea caves, pebble coves and a hilltop monastery'},
+      {icon:'🌿',name:'Pontikonisi (Mouse Island)',desc:'Tiny islet with a Byzantine chapel — the most photographed spot in Corfu, best at dawn before the boats arrive'},
+    ],
+    weather:{spring:{temp:'20°C',desc:'Lush and green — the Ionian\'s greenest island at its most beautiful in April–May'},summer:{temp:'30°C',desc:'Hot, busy, and perfect sea — the Ionian is calmer than the Aegean for swimming'},autumn:{temp:'22°C',desc:'Best months — warm sea, empty beaches, gorgeous golden light for photography'},winter:{temp:'12°C',desc:'Rainy season brings lush greenery; the Old Town is atmospheric, calm and very local'}},
+    bestTime:'May–October',
+    foods:[
+      {emoji:'🥩',name:'Sofrito',desc:'Corfu\'s signature dish — veal slow-cooked in white wine, garlic and parsley sauce, Venetian-influenced'},
+      {emoji:'🐟',name:'Bourdeto',desc:'Spicy scorpionfish stew with cayenne pepper — the Ionian\'s most distinctive and characterful fish dish'},
+      {emoji:'🍊',name:'Kumquat Liqueur',desc:'Tiny citrus fruit unique to Corfu — makes a vivid orange liqueur and marmalade found everywhere on the island'},
+      {emoji:'🥯',name:'Tsoureki',desc:'Braided sweet bread with mahlab spice — sold year-round in Corfu, not just at Easter like elsewhere'},
+    ],
+    transport:[
+      {icon:'✈️',type:'By Air',desc:'Corfu (CFU) — direct charter and scheduled flights from UK & EU; airport is 3km from Old Town'},
+      {icon:'⛴',type:'Ferry from Igoumenitsa',desc:'1.5h fast hydrofoil from Igoumenitsa — or overnight ferry from Patras 7h with cabin option'},
+      {icon:'🚌',type:'KTEL Bus',desc:'From Athens (8h) via Patras ferry — or simply fly. Local KTEL buses cover all beaches'},
+      {icon:'🛵',type:'Scooter & Car',desc:'Best way to explore the island — rent for a day to reach hidden coves on the north coast'},
+    ]
+  },
+
+  olympia:{name:'Olympia',country:'Greece',tagline:'Birthplace of the Olympic Games — Sacred Grove of Zeus',
+    heroBg:'linear-gradient(135deg,#404008 0%,#888010 55%,#c0b030 100%)',
+    sights:[
+      {icon:'🏅',name:'Ancient Olympic Stadium',desc:'The original 192m Olympic running track (776 BC) — stand at the start line where athletes competed for glory'},
+      {icon:'🏛',name:'Temple of Zeus',desc:'Site of the 12m gold-and-ivory Statue of Zeus — one of the Seven Wonders of the Ancient World (470 BC)'},
+      {icon:'🏺',name:'Olympia Archaeological Museum',desc:'Nike of Paionios and Hermes of Praxiteles — among the finest classical sculptures in existence anywhere'},
+      {icon:'🔥',name:'Olympic Flame Ceremony',desc:'The flame is still lit here using a parabolic mirror and taken to every Olympics host city around the world'},
+    ],
+    weather:{spring:{temp:'22°C',desc:'Wildflowers in the Altis sanctuary, ideal for exploring the ruins in soft afternoon light'},summer:{temp:'36°C',desc:'Very hot — visit at 8am and finish by noon; afternoon siesta is absolutely mandatory'},autumn:{temp:'22°C',desc:'Comfortable temperatures, olive harvest, local wine festivals in nearby Nemea'},winter:{temp:'10°C',desc:'Quiet and green after autumn rains — most cruise tourists gone, ruins feel genuinely ancient'}},
+    bestTime:'April–June & September–October',
+    foods:[
+      {emoji:'🫒',name:'Kalamata Olives',desc:'The world\'s most famous olive, grown just south of Olympia — meaty, rich and mildly bitter'},
+      {emoji:'🍷',name:'Nemea Agiorgitiko',desc:'Bold red wine from the nearby Nemea valley — Greece\'s most food-friendly indigenous grape variety'},
+      {emoji:'🧀',name:'Graviera Cheese',desc:'Aged hard cheese made from sheep and goat milk in the Peloponnese mountains — nutty and sweet'},
+      {emoji:'🥩',name:'Spit-Roasted Lamb',desc:'Whole lamb roasted over charcoal — the Easter and feast-day centrepiece of all of rural Greece'},
+    ],
+    transport:[
+      {icon:'🚂',type:'Train',desc:'Athens to Pyrgos (3.5h) then local bus 30 min to Olympia — scenic Peloponnese railway journey'},
+      {icon:'🚌',type:'KTEL Bus',desc:'From Athens (Kifissos terminal): 4h to Pyrgos, change for Olympia — twice daily service'},
+      {icon:'🚗',type:'By Car',desc:'Athens to Olympia: 3h via Corinth and Patras — best for combining with Mycenae and Epidaurus'},
+      {icon:'⛴',type:'Ferry from Patras',desc:'Patras port is 1h away — Corfu, Italy and Croatia ferries all connect here'},
+    ]
+  },
+
+  hakone:{name:'Hakone',country:'Japan',tagline:'Fuji Views, Volcanic Hot Springs & World-Class Art Museums',
+    heroBg:'linear-gradient(135deg,#0a1830 0%,#1a4060 55%,#a0c8e0 100%)',
+    sights:[
+      {icon:'♨️',name:'Hakone Open Air Museum',desc:'Japan\'s first open-air museum — Picasso pavilion and 120 sculptures set in dramatic mountain scenery'},
+      {icon:'🌋',name:'Owakudani Volcanic Valley',desc:'Steaming sulphur vents at 1,044m — kuro-tamago black eggs hard-boiled in the hot springs reportedly add 7 years to life'},
+      {icon:'⛵',name:'Lake Ashi Cruise',desc:'Ferry crossing with Mt. Fuji perfectly reflected in the lake on clear mornings — red torii gate at the lakeside'},
+      {icon:'🚡',name:'Hakone Ropeway',desc:'Aerial tramway over the Owakudani crater — stunning and slightly terrifying views straight down into the volcano'},
+    ],
+    weather:{spring:{temp:'14°C',desc:'Cherry blossom at the lakeside — Fuji often visible through clear spring skies before the haze'},summer:{temp:'26°C',desc:'Lush green mountains; humid but refreshing at higher elevation; onsen bathing is superb'},autumn:{temp:'15°C',desc:'Red and gold foliage with Mt. Fuji emerging — the finest season for Hakone photography'},winter:{temp:'3°C',desc:'Snow-capped Fuji at its most majestic — outdoor onsen bathing in winter is quintessentially Japanese'}},
+    bestTime:'October–December & March–April',
+    foods:[
+      {emoji:'🥚',name:'Kuro Tamago',desc:'Black sulphur-boiled eggs at Owakudani — one egg supposedly extends your life by 7 years'},
+      {emoji:'🍜',name:'Yuba Kaiseki',desc:'Hakone\'s local tofu-skin (yuba) cuisine — delicate, refined and deeply umami; served at top ryokan'},
+      {emoji:'🫖',name:'Ashigara Green Tea',desc:'Locally grown Kanagawa tea — lighter and sweeter than Uji Matcha; served at most ryokan breakfasts'},
+      {emoji:'🍶',name:'Hakone Sake',desc:'Mountain spring water sake from Odawara breweries — exceptionally clean, mineral and well-balanced'},
+    ],
+    transport:[
+      {icon:'🚂',type:'Romancecar (Odakyu)',desc:'Direct luxury express from Shinjuku to Hakone-Yumoto in 85 min — panoramic windows, reserved seats'},
+      {icon:'🚡',type:'Hakone Free Pass',desc:'Rack railway, ropeway, boat and bus loop all included — the most scenic transport network in Japan'},
+      {icon:'🚅',type:'Via Odawara',desc:'Shinkansen to Odawara (35 min from Tokyo) then Hakone Tozan railway 40 min up the mountain'},
+      {icon:'🚗',type:'By Car',desc:'Tomei Expressway: Tokyo to Hakone IC in 1.5h — ideal for staying at a hillside onsen ryokan'},
+    ]
+  },
+
+  nikko:{name:'Nikkō',country:'Japan',tagline:'Ornate Shoguns\' Shrines, Sacred Waterfalls & Mountain Mysticism',
+    heroBg:'linear-gradient(135deg,#0c2010 0%,#285028 55%,#a04020 100%)',
+    sights:[
+      {icon:'⛩',name:'Tōshō-gū Shrine',desc:'Elaborately carved and gilded mausoleum of Shogun Tokugawa Ieyasu (1617) — UNESCO World Heritage; 5,173 individual carvings'},
+      {icon:'🐒',name:'Three Wise Monkeys',desc:'The original hear-no-evil, see-no-evil, speak-no-evil carving (1636) — above the Shinkyusha sacred stable'},
+      {icon:'💧',name:'Kegon Falls',desc:'Japan\'s most celebrated waterfall (97m) with a rainbow at noon — best from the free lower observation deck'},
+      {icon:'🌲',name:'Cryptomeria Avenue',desc:'13,000 ancient cedar trees lining 35km of approach roads — planted in 1648, a living UNESCO-recognised treasure'},
+    ],
+    weather:{spring:{temp:'15°C',desc:'Cherry blossom and azaleas along the cedar avenues — beautiful and uncrowded on weekdays'},summer:{temp:'25°C',desc:'Cool mountain retreat from Tokyo heat; fireflies at Lake Chuzenji in June are magical'},autumn:{temp:'14°C',desc:'Peak autumn foliage season — the ancient cedars frame vivid red maples perfectly'},winter:{temp:'1°C',desc:'Snow-dusted shrines and frozen Kegon Falls — the gold carvings glow against white snow'}},
+    bestTime:'October–November & April–May',
+    foods:[
+      {emoji:'🍡',name:'Yuba Dishes',desc:'Nikkō\'s regional delicacy — tofu skin rolled around vegetables, served in dashi broth at every restaurant'},
+      {emoji:'🥮',name:'Nikkō Castella',desc:'Portuguese-influenced sponge cake — a Nikkō sweet-shop staple sold in beautiful wooden boxes since the Edo period'},
+      {emoji:'🍜',name:'Nikkō Ramen',desc:'Light shoyu broth with mountain vegetable toppings — warming after a long day exploring the shrines'},
+      {emoji:'🍶',name:'Yamato Sake',desc:'Local sake from Imaichi breweries on the mountain — crisp, dry, pairs beautifully with yuba tofu skin'},
+    ],
+    transport:[
+      {icon:'🚂',type:'Tobu Nikko Line',desc:'Shinjuku to Nikkō in 2h via the Spacia express luxury train — the most comfortable and direct route'},
+      {icon:'🚂',type:'JR + Tobu',desc:'JR Shinkansen to Utsunomiya (50 min) then Tobu local train to Nikkō (45 min) — covered by JR Pass'},
+      {icon:'🚌',type:'Local Buses',desc:'Tobu buses connect Nikkō station to Tosho-gu, Lake Chuzenji and Kegon Falls efficiently'},
+      {icon:'🚗',type:'By Car',desc:'Nikko Utsunomiya Road from Tokyo: 2h; parking near the main shrine entrance is available'},
+    ]
+  },
+
+  kamakura:{name:'Kamakura',country:'Japan',tagline:'Great Buddha, Zen Temples & Samurai Coast South of Tokyo',
+    heroBg:'linear-gradient(135deg,#0a1830 0%,#286888 55%,#50a8c0 100%)',
+    sights:[
+      {icon:'🗿',name:'Kōtoku-in Great Buddha',desc:'11.4m bronze Amitabha Buddha (1252) — Japan\'s second largest; hollow inside, you can enter the body itself'},
+      {icon:'⛩',name:'Tsurugaoka Hachiman-gū',desc:'Kamakura\'s most important shrine — dramatic approach lined with ponds, bridges and hundreds of stone lanterns'},
+      {icon:'🎋',name:'Hokokuji Bamboo Temple',desc:'Private bamboo grove of 2,000 moso stems at a Rinzai Zen temple — matcha ceremony served in the serene garden'},
+      {icon:'🏖',name:'Yuigahama Beach',desc:'Long sandy beach 10 min on foot — surfers, beach huts and Mt. Fuji visible on clear winter mornings'},
+    ],
+    weather:{spring:{temp:'17°C',desc:'Cherry blossoms at Tsurugaoka Hachiman-gū — the entire approach avenue bursts into bloom'},summer:{temp:'30°C',desc:'Beach season at Yuigahama — popular with Tokyo day-trippers, lively festival atmosphere'},autumn:{temp:'20°C',desc:'Best hiking season — the Daibutsu Trail links all major temples through ancient cedar forest'},winter:{temp:'7°C',desc:'Clear skies mean Mt. Fuji visible from the beach; least crowded, still full of temple charm'}},
+    bestTime:'March–May & October–November',
+    foods:[
+      {emoji:'🥚',name:'Shirasu (Whitebait)',desc:'Fresh and dried baby fish from Sagami Bay — on rice, pasta or straight from the fishermen at the harbour'},
+      {emoji:'🍵',name:'Matcha at Hokokuji',desc:'Formal matcha tea served in the bamboo grove — the most scenic and serene tea service in all Japan'},
+      {emoji:'🍡',name:'Kuzukiri',desc:'Chilled arrowroot noodles with sweet black-sugar syrup — a Kamakura dessert since the Edo period'},
+      {emoji:'🍜',name:'Kamakura Veg Ramen',desc:'Zen Buddhist-influenced vegetarian ramen — lighter and more delicate than Tokyo-style; found near the temples'},
+    ],
+    transport:[
+      {icon:'🚂',type:'JR Yokosuka Line',desc:'Tokyo or Shinjuku to Kamakura: 55 min direct — one of Tokyo\'s most comfortable day trips'},
+      {icon:'🚃',type:'Enoden (Enoshima Line)',desc:'Charming single-track tram between Kamakura and Fujisawa — sea views at Inamuragasaki rock'},
+      {icon:'🚶',type:'Temple Hiking Trails',desc:'Daibutsu Trail: 2h forest hike linking Kita-Kamakura to the Great Buddha through ancient cedar groves'},
+      {icon:'🚗',type:'By Car',desc:'Yokohama Yokosuka Expressway: 1h from Tokyo; park near Hase station for the Great Buddha'},
+    ]
+  },
+
+  kanazawa:{name:'Kanazawa',country:'Japan',tagline:'Little Kyoto — Samurai Districts, Geisha Teahouses & Japan\'s Finest Garden',
+    heroBg:'linear-gradient(135deg,#1a0830 0%,#402060 55%,#705080 100%)',
+    sights:[
+      {icon:'🌿',name:'Kenroku-en Garden',desc:'Japan\'s most celebrated landscape garden — 6 attributes of perfection; especially beautiful under winter\'s yukizuri snow protection ropes'},
+      {icon:'⛩',name:'Higashi Chaya Geisha District',desc:'Best-preserved geisha entertainment quarter in Japan — amber lanterns, historic ochaya teahouses open for matcha and tours'},
+      {icon:'🏯',name:'Kanazawa Castle',desc:'17th-century castle with distinctive white lead-tiled turrets — free grounds; adjacent to Kenroku-en garden'},
+      {icon:'🐟',name:'Omicho Market',desc:'Kitchen of Kanazawa since 1721 — 180 stalls of Noto Peninsula crab, yellowtail, fresh seafood and local produce'},
+    ],
+    weather:{spring:{temp:'15°C',desc:'Cherry blossoms in Kenroku-en — the lantern-lit night-time viewing is simply unforgettable'},summer:{temp:'28°C',desc:'Warm and humid; Hyakumangoku Festival in June celebrates the city\'s rich cultural founding'},autumn:{temp:'18°C',desc:'Red maples in Kenroku-en; Noto crab season begins in November — outstanding seasonal seafood'},winter:{temp:'4°C',desc:'Yukizuri rope supports protect Kenroku-en trees from snow — a unique and breathtaking sight'}},
+    bestTime:'March–May & October–November',
+    foods:[
+      {emoji:'🦀',name:'Kaga Crab (Kani)',desc:'Noto Peninsula snow crabs available November–March — grilled on the shell or as sashimi at Omicho Market'},
+      {emoji:'🍣',name:'Kanazawa Sushi',desc:'Distinctive local style: larger pieces, Noto Inland Sea seafood, less soy sauce than Tokyo — deeply flavourful'},
+      {emoji:'🍵',name:'Higashi Chaya Matcha',desc:'Thick koicha matcha at a historic geisha teahouse — the authentic Kanazawa cultural experience'},
+      {emoji:'🍫',name:'Kaga棒茶 Roasted Tea',desc:'Houjicha from stems of Kanazawa\'s Kaga tea — sweet, roasted and unique to the region; buy loose-leaf to take home'},
+    ],
+    transport:[
+      {icon:'🚅',type:'Hokuriku Shinkansen',desc:'Tokyo to Kanazawa: 2h30 direct on the Kagayaki — opened 2015, completely transformed Kanazawa\'s accessibility'},
+      {icon:'🚅',type:'From Kyoto / Osaka',desc:'Thunderbird limited express: Osaka to Kanazawa 2h10, Kyoto 2h via Tsuruga — extended by Shinkansen from 2024'},
+      {icon:'🚌',type:'Kanazawa Loop Bus',desc:'Left and Right Loop buses cover all major sights from the station for just ¥200 per ride'},
+      {icon:'🚲',type:'Cycling',desc:'Flat central streets — rent from Kanazawa station and cycle the samurai districts and garden in 2h'},
+    ]
+  },
+
+  sapporo:{name:'Sapporo',country:'Japan — Hokkaido',tagline:'Snow City of Hokkaido — Beer, Powder & Ramen Paradise',
+    heroBg:'linear-gradient(135deg,#0a1838 0%,#1840a0 55%,#4888d8 100%)',
+    sights:[
+      {icon:'🌸',name:'Odori Park & TV Tower',desc:'1.5km green spine through the city — cherry blossoms in spring, ice sculptures at the Snow Festival (Feb)'},
+      {icon:'🍺',name:'Sapporo Beer Museum',desc:'Japan\'s oldest brewery (1876) — amber halls, vintage vats, free tour and tasting; Hokkaido\'s most popular museum'},
+      {icon:'⛩',name:'Hokkaido Shrine (Hokkaido Jingu)',desc:'Meiji-era Shinto shrine in 180,000m² of Maruyama Park forest — cherry blossom viewing in late April'},
+      {icon:'⛷',name:'Niseko & Furano Ski Resorts',desc:'World-class powder snow draws skiers from across the globe — day-trip from Sapporo in under 2 hours'},
+    ],
+    weather:{spring:{temp:'12°C',desc:'Late cherry blossom (late April–May) — Odori Park is spectacular and less crowded than Honshu'},summer:{temp:'26°C',desc:'Cool and dry — a welcome escape from Honshu\'s humidity; Yosakoi Soran festival in June'},autumn:{temp:'14°C',desc:'Brilliant red maples in Maruyama Park — Hokkaido autumn colour peaks 2 weeks before Tokyo'},winter:{temp:'-6°C',desc:'World-famous Snow Festival (Feb) — 200+ ice sculptures; powder skiing is exceptional'}},
+    bestTime:'July–August (summer) & February (snow festival)',
+    foods:[
+      {emoji:'🦀',name:'Kani (Hokkaido Crab)',desc:'Snow crab, hairy crab and king crab — the finest in Japan; Nijo Market and Curb Market sell live specimens'},
+      {emoji:'🍜',name:'Sapporo Miso Ramen',desc:'Rich miso broth, wavy noodles, corn, butter and bamboo shoots — born here in 1955, perfected since'},
+      {emoji:'🍨',name:'Hokkaido Soft Serve Ice Cream',desc:'Rich dairy from Hokkaido\'s famous pasture-raised cows — matcha, lavender, melon and milk flavours'},
+      {emoji:'🦪',name:'Genghis Khan (Jingisukan)',desc:'Mutton and vegetables grilled on a domed iron skillet — Hokkaido\'s beloved communal BBQ tradition'},
+    ],
+    transport:[
+      {icon:'🚅',type:'Hokkaido Shinkansen',desc:'Tokyo to Shin-Hakodate-Hokuto: 4h then limited express to Sapporo (2026 extension to Sapporo planned)'},
+      {icon:'✈️',type:'By Air',desc:'New Chitose (CTS) — 40 min from Tokyo Haneda; direct flights from major Asian cities'},
+      {icon:'🚃',type:'Sapporo City Subway',desc:'3 lines cover all major sights; Odori station is the central hub for all three lines'},
+      {icon:'🚌',type:'Highway Bus',desc:'Frequent overnight buses to Furano, Niseko, Hakodate and Asahikawa at low cost'},
+    ]
+  },
+
+  hakodate:{name:'Hakodate',country:'Japan — Hokkaido',tagline:'Romantic Port City — Japan\'s Most Beautiful Night View & Star Fort',
+    heroBg:'linear-gradient(135deg,#0a1428 0%,#1a3870 55%,#3868b8 100%)',
+    sights:[
+      {icon:'🌃',name:'Mount Hakodate Night View',desc:'Japan\'s most celebrated night view — the city glittering between two bays at 334m; ranked among the world\'s top three'},
+      {icon:'⭐',name:'Fort Goryokaku',desc:'Japan\'s first Western-style star fort (1864) — 1,600 cherry trees bloom inside the moat every late April'},
+      {icon:'🐟',name:'Hakodate Morning Market',desc:'Dawn market with 250 stalls of live crabs, sea urchin, scallops and Hokkaido salmon — opens 5am daily'},
+      {icon:'🏘',name:'Motomachi Slope District',desc:'19th-century consulate buildings, Russian and Chinese churches on hillside lanes overlooking the port'},
+    ],
+    weather:{spring:{temp:'10°C',desc:'Fort Goryokaku cherry blossoms — the star-fort shape is best seen from the observation tower'},summer:{temp:'23°C',desc:'Mild and pleasant — sea breeze cools the city; squid fishing boats light up the bay at night'},autumn:{temp:'14°C',desc:'Vivid red maple foliage on Hakodate Mountain; night view is crystal clear in autumn air'},winter:{temp:'-4°C',desc:'Snow transforms the Motomachi slopes; the night view in snow is profoundly beautiful'}},
+    bestTime:'April–May (cherry) & October (foliage)',
+    foods:[
+      {emoji:'🦔',name:'Uni (Sea Urchin)',desc:'Hakodate\'s Ezo Murasaki-uni — Japan\'s finest sea urchin, eaten on a wooden box of rice with soy'},
+      {emoji:'🦑',name:'Ika Somen',desc:'Raw squid sliced into hair-thin noodles and served in its own ink — a Hakodate specialty'},
+      {emoji:'🦀',name:'Kani Shabu',desc:'Hairy crab legs swirled in hot dashi broth — the most delicate hot pot in all Hokkaido'},
+      {emoji:'🍻',name:'Lucky Pierrot Burger',desc:'Hakodate\'s legendary local burger chain — the Chinese Chicken Burger is the cult order'},
+    ],
+    transport:[
+      {icon:'🚅',type:'Hokkaido Shinkansen',desc:'Tokyo to Shin-Hakodate-Hokuto: 4h on Hayabusa; then 15 min by Limited Express to Hakodate station'},
+      {icon:'✈️',type:'By Air',desc:'Hakodate Airport (HKD) — 45 min from Tokyo Haneda; 20 min by bus to city centre'},
+      {icon:'🚃',type:'Hakodate Tram',desc:'Historic street tram network — Line 2 goes to Motomachi and Fort Goryokaku from the station'},
+      {icon:'🚠',type:'Ropeway',desc:'4-minute ropeway to the Hakodate Mountain summit (334m) — runs until 10pm for the night view'},
+    ]
+  },
+
+  niseko:{name:'Niseko',country:'Japan — Hokkaido',tagline:'World\'s Best Powder Snow — Alpine Village & Hot Spring Bliss',
+    heroBg:'linear-gradient(135deg,#0a1830 0%,#204080 55%,#d8eef8 100%)',
+    sights:[
+      {icon:'⛷',name:'Niseko Grand Hirafu',desc:'Japan\'s most internationally renowned ski resort — 800m vertical drop, 30+ runs, legendary Hokkaido powder'},
+      {icon:'🗻',name:'Mt. Yotei Views',desc:'Perfect conical volcano mirroring Mt. Fuji — panoramic views from the ski slopes and hilltop onsen'},
+      {icon:'♨️',name:'Yukigoromo Onsen',desc:'Open-air hot springs surrounded by snow-laden trees — bathing under the stars in winter is unmissable'},
+      {icon:'🏂',name:'Hanazono & Annupuri',desc:'Four interconnected resorts accessible via the Niseko All Mountain Pass — 60km of piste total'},
+    ],
+    weather:{spring:{temp:'8°C',desc:'Ski season ends late March; wildflowers emerge on the mountain slopes from April'},summer:{temp:'22°C',desc:'Lush green hiking, rafting on the Shiribeshi river, mountain biking and golf'},autumn:{temp:'10°C',desc:'Vivid foliage on Mt. Yotei — hiking season peaks October with crystal-clear air'},winter:{temp:'-12°C',desc:'Average 15m annual snowfall — the champagne powder that skiers travel the world to find'}},
+    bestTime:'December–March (ski) & July–August (summer)',
+    foods:[
+      {emoji:'🧀',name:'Hokkaido Cheese Fondue',desc:'Made from the island\'s world-famous dairy — rich, creamy and the perfect post-ski warming dish'},
+      {emoji:'🍖',name:'Hokkaido Lamb BBQ',desc:'Local Churro lamb grilled over charcoal with miso marinade — Niseko\'s après-ski staple'},
+      {emoji:'🍜',name:'Curry Ramen',desc:'Sapporo-style curry miso ramen adapted for the mountains — thick, warming, irresistible in cold weather'},
+      {emoji:'🍵',name:'Yotei Milk',desc:'Whole milk from cows grazing below Mt. Yotei — the richest, creamiest milk in Japan, drunk ice-cold'},
+    ],
+    transport:[
+      {icon:'🚌',type:'Airport Bus',desc:'New Chitose Airport (Sapporo) to Niseko: 2h30 direct shuttle; also from Hakodate Airport 2h'},
+      {icon:'🚃',type:'JR + Bus',desc:'JR to Kutchan station then shuttle bus to the slopes — covered by JR Pass for the rail portion'},
+      {icon:'🚗',type:'Car Rental',desc:'Most flexible — rent at Sapporo airport for the 2h drive via Expressway; winter tyres essential'},
+      {icon:'⛷',type:'Resort Shuttle',desc:'Free shuttle buses link all four Niseko resorts; Grand Hirafu village is the main hub'},
+    ]
+  },
+
+  biei:{name:'Biei & Furano',country:'Japan — Hokkaido',tagline:'Lavender Fields, Patchwork Hills & Pure Hokkaido Countryside',
+    heroBg:'linear-gradient(135deg,#301060 0%,#8844c0 55%,#c090e0 100%)',
+    sights:[
+      {icon:'💜',name:'Farm Tomita (Lavender Farm)',desc:'Japan\'s most famous lavender farm — 75 acres of purple-striped hillsides in full bloom mid-July; free entry'},
+      {icon:'🌈',name:'Biei Patchwork Hills (Ken & Mary Tree)',desc:'Rolling multi-coloured crop fields with lonely sentinel trees — best photographed in the golden hour'},
+      {icon:'🌸',name:'Shikisai-no-Oka (Four Seasons Hill)',desc:'Year-round flower terraces — tulips in spring, lavender in summer, cosmos and sunflowers in autumn'},
+      {icon:'🎿',name:'Furano Ski Resort',desc:'Japan\'s most picturesque ski resort — the classic Hokkaido powder under a Furano blue sky'},
+    ],
+    weather:{spring:{temp:'10°C',desc:'Tulips at Shikisai-no-Oka from May; the hills are still green and uncrowded'},summer:{temp:'23°C',desc:'Lavender peak mid-July at Farm Tomita — the most popular season, book accommodation early'},autumn:{temp:'12°C',desc:'Cosmos, dahlias and sunflowers at Shikisai-no-Oka; maple colour on the patchwork hills'},winter:{temp:'-15°C',desc:'Deep powder skiing at Furano Resort; the snow-covered hills are hauntingly beautiful'}},
+    bestTime:'Mid-July (lavender) & February (ski)',
+    foods:[
+      {emoji:'🫐',name:'Furano Melon',desc:'The most prized melon in Japan — sweet Yubari or Furano variety, often eaten as a dessert bowl'},
+      {emoji:'🧀',name:'Furano Cheese',desc:'Artisan cheese factory open to visitors — fresh curds, semi-aged and aged rounds from Hokkaido milk'},
+      {emoji:'💜',name:'Lavender Soft Serve',desc:'Farm Tomita\'s iconic lavender ice cream — floral, aromatic and distinctly Hokkaido'},
+      {emoji:'🍷',name:'Hokkaido Wine',desc:'Furano is Hokkaido\'s wine heartland — Pinot Noir and Müller-Thurgau from volcanic soils at altitude'},
+    ],
+    transport:[
+      {icon:'🚃',type:'Furano Line (JR)',desc:'Sapporo to Furano: 2h by JR Lilac + Furano Line; Asahikawa to Furano: 1h — scenic mountain journey'},
+      {icon:'🚌',type:'Flower Land Bus',desc:'Lavender season shuttle buses run between Furano station, Farm Tomita and Biei from June–August'},
+      {icon:'🚗',type:'Car Rental',desc:'Essential for Biei\'s scattered patchwork hills — rent at Asahikawa Airport (nearest major hub)'},
+      {icon:'🚲',type:'Cycling',desc:'Biei\'s rolling hills are perfect for cycling — rent e-bikes from Biei station for the Panorama Road circuit'},
+    ]
+  },
+
+  nara:{name:'Nara',country:'Japan',tagline:'Ancient Capital of Deer, Giant Buddhas & Primeval Forest',
+    heroBg:'linear-gradient(135deg,#0c2010 0%,#285838 55%,#508060 100%)',
+    sights:[
+      {icon:'🦌',name:'Nara Park & Sacred Deer',desc:'1,200 free-roaming deer considered divine messengers — buy shika senbei crackers to feed them'},
+      {icon:'🛕',name:'Todai-ji Great Buddha Hall',desc:'World\'s largest wooden structure (749 AD) housing a 15m bronze Great Buddha — awe-inspiring in scale'},
+      {icon:'⛩',name:'Kasuga Grand Shrine',desc:'Shinto shrine with 3,000 stone and bronze lanterns lit twice yearly — a mystical, ancient atmosphere'},
+      {icon:'🌲',name:'Isuien Garden & Mt. Wakakusa',desc:'Edo-period strolling garden with borrowed Mt. Wakakusa scenery — serene and uncrowded even in peak season'},
+    ],
+    weather:{spring:{temp:'18°C',desc:'Cherry blossom in Nara Park with photogenic deer — magical and uniquely Japanese'},summer:{temp:'34°C',desc:'Very hot; Todai-ji is best at dawn; Yamayaki grass-burning festival in January'},autumn:{temp:'18°C',desc:'Autumn leaves in Isuien garden and Yoshino area — Nara\'s most beautiful season'},winter:{temp:'4°C',desc:'Quiet and meditative; occasional snow on deer and temple roofs is stunning'}},
+    bestTime:'March–May & October–November',
+    foods:[
+      {emoji:'🍱',name:'Kakinoha-zushi',desc:'Pressed mackerel and salmon sushi wrapped in persimmon leaves — a Nara delicacy since the Edo period'},
+      {emoji:'🥒',name:'Narazuke Pickles',desc:'Vegetables pickled in sake lees for months — intensely flavoured and mildly alcoholic; iconic souvenir'},
+      {emoji:'🍡',name:'Shika Senbei',desc:'Deer crackers (technically for the deer, but the ritual of feeding them is the real experience)'},
+      {emoji:'🍵',name:'Yoshino Kuzu Mochi',desc:'Glossy rice cake made from Yoshino kuzu starch — served with black sugar syrup and ground soybean'},
+    ],
+    transport:[
+      {icon:'🚂',type:'JR Nara Line',desc:'From Kyoto: 45 min by JR Miyakoji Rapid (¥720); covered by JR Pass — simplest option'},
+      {icon:'🚃',type:'Kintetsu Railway',desc:'From Osaka Namba: 39 min limited express to Kintetsu-Nara, right in the centre of town'},
+      {icon:'🚶',type:'Walking City',desc:'All major sights within a 2km radius from the station — Nara is Japan\'s most walkable ancient city'},
+      {icon:'🚌',type:'City Loop Bus',desc:'Nara Kotsu loop bus connects outlying temples like Horyu-ji (15 min south) efficiently'},
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════════
+//  WIKIPEDIA IMAGE LOADER
+// ═══════════════════════════════════════════════
+const WIKI = {
+  milan:          {hero:'Milan',          sights:['Milan Cathedral','The Last Supper (Leonardo)','Galleria Vittorio Emanuele II','Castello Sforzesco']},
+  venice:         {hero:'Venice',         sights:["St Mark's Basilica",'Rialto Bridge',"Doge's Palace",'Carnival of Venice']},
+  florence:       {hero:'Florence',       sights:['Uffizi Gallery','Florence Cathedral','David (Michelangelo)','Ponte Vecchio']},
+  rome:           {hero:'Rome',           sights:['Colosseum','Vatican City','Trevi Fountain','Roman Forum']},
+  amalfi:         {hero:'Amalfi Coast',   sights:['Positano','Amalfi Cathedral','Path of the Gods','Capri']},
+  sicily:         {hero:'Mount Etna',     sights:['Mount Etna','Valley of the Temples','Ballarò market','Taormina']},
+  naples:         {hero:'Naples',         sights:['Naples','National Archaeological Museum, Naples','Castel dell\'Ovo','Posillipo']},
+  'cinque-terre': {hero:'Cinque Terre',   sights:['Vernazza','Sentiero Azzurro','Manarola','Riomaggiore']},
+  'lake-como':    {hero:'Lake Como',      sights:['Villa del Balbianello','Villa Carlotta','Bellagio','Como–Brunate funicular']},
+  pompeii:        {hero:'Pompeii',        sights:['Pompeii','Mount Vesuvius','Villa of the Mysteries','Herculaneum']},
+  meteora:        {hero:'Meteora',        sights:['Great Meteoron','Meteora','Meteora','Kalambaka']},
+  athens:         {hero:'Athens',         sights:['Parthenon','National Archaeological Museum, Athens','Monastiraki','Cape Sounion']},
+  mykonos:        {hero:'Mykonos',        sights:['Mykonos','Little Venice, Mykonos','Paraportiani','Paradise Beach, Mykonos']},
+  santorini:      {hero:'Santorini',      sights:['Oia, Santorini','Santorini','Red Beach, Santorini','Assyrtiko wine']},
+  crete:          {hero:'Crete',          sights:['Knossos','Samaria Gorge','Balos lagoon','Heraklion']},
+  rhodes:         {hero:'Rhodes',         sights:['Rhodes Old Town','Colossus of Rhodes','Lindos','Valley of the Butterflies, Rhodes']},
+  thessaloniki:   {hero:'Thessaloniki',   sights:['White Tower of Thessaloniki','Hagia Sophia, Thessaloniki','Archaeological Museum of Thessaloniki','Modiano Market']},
+  delphi:         {hero:'Delphi',         sights:['Temple of Apollo, Delphi','Delphi Archaeological Museum','Ancient theatre of Delphi','Arachova']},
+  corfu:          {hero:'Corfu',          sights:['Corfu Old Town','Achilleion','Paleokastritsa','Pontikonisi']},
+  olympia:        {hero:'Olympia, Elis',  sights:['Ancient Olympia','Temple of Zeus, Olympia','Olympia Archaeological Museum','Katakolon']},
+  tokyo:          {hero:'Tokyo',          sights:['Senso-ji','Shibuya crossing','Tokyo Tower','Shinjuku Gyoen']},
+  kyoto:          {hero:'Kyoto',          sights:['Fushimi Inari-taisha','Kinkaku-ji','Arashiyama bamboo grove','Gion, Kyoto']},
+  osaka:          {hero:'Osaka',          sights:['Osaka Castle','Dotonbori','Universal Studios Japan','Kuromon Ichiba Market']},
+  hiroshima:      {hero:'Hiroshima',      sights:['Hiroshima Peace Memorial','Atomic bombings of Hiroshima and Nagasaki','Itsukushima Shrine','Hiroshima Castle']},
+  fuji:           {hero:'Mount Fuji',     sights:['Mount Fuji','Fuji Five Lakes','Hakone','Chureito Pagoda']},
+  nara:           {hero:'Nara, Nara',     sights:['Nara Park','Tōdai-ji','Kasuga-taisha','Isuien']},
+  hakone:         {hero:'Hakone',         sights:['Hakone Open-Air Museum','Owakudani','Lake Ashi','Hakone Ropeway']},
+  nikko:          {hero:'Nikkō',          sights:['Tōshō-gū','Yōmei-mon','Kegon Falls','Nikkō Cryptomeria Avenue']},
+  kamakura:       {hero:'Kamakura',       sights:['Kōtoku-in','Tsurugaoka Hachiman-gū','Hokoku-ji','Yuigahama Beach']},
+  kanazawa:       {hero:'Kanazawa',       sights:['Kenroku-en','Higashi Chaya District','Kanazawa Castle','Omicho Market']},
+  sapporo:        {hero:'Sapporo',        sights:['Odori Park','Sapporo Beer Museum','Hokkaido Jingu','Susukino']},
+  hakodate:       {hero:'Hakodate',       sights:['Hakodate at night','Fort Goryokaku','Hakodate Morning Market','Motomachi, Hakodate']},
+  niseko:         {hero:'Niseko',         sights:['Niseko ski resort','Mount Yōtei','Niseko','Grand Hirafu']},
+  biei:           {hero:'Biei, Hokkaido', sights:['Farm Tomita','Biei, Hokkaido','Shikisai-no-Oka','Furano ski resort']},
+};
+
+async function wikiImg(title) {
+  try {
+    const r = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+      {headers:{Accept:'application/json'}}
+    );
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.thumbnail?.source ?? null;
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════
+//  PANEL LOGIC
+// ═══════════════════════════════════════════════
+let current = null;
+let currentTab = 'sights';
+
+function openPanel(id) {
+  const d = DATA[id];
+  if (!d) return;
+  current = id;
+  currentTab = 'sights';
+
+  document.getElementById('p-country').textContent = d.country;
+  document.getElementById('p-name').textContent = d.name;
+  document.getElementById('p-tagline').textContent = d.tagline;
+  const bg = document.getElementById('p-bg');
+  bg.style.cssText = 'position:absolute;inset:0;background:#1e2a45;';
+  const wikiD = WIKI[id];
+  wikiImg(wikiD ? wikiD.hero : d.name).then(src => {
+    if (!src) return;
+    bg.style.cssText =
+      `background-image:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.18) 65%),url('${src}');` +
+      `background-size:cover;background-position:center;position:absolute;inset:0;`;
+  });
+
+  document.querySelectorAll('.p-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  renderTab('sights');
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  current = null;
+}
+
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const d = DATA[current];
+  if (!d) return;
+  const body = document.getElementById('p-body');
+  if (tab === 'sights') {
+    const wikiD = WIKI[current];
+    body.innerHTML = `<p class="sec-title">Top Attractions</p>
+      <ul class="sight-list">${d.sights.map((s,i) => `
+        <li class="sight-item">
+          <div class="sight-photo" id="simg-${i}">
+            <span class="sight-badge">${s.icon}</span>
+          </div>
+          <div><strong>${s.name}</strong><span>${s.desc}</span></div>
+        </li>`).join('')}</ul>`;
+    const snapId = current;
+    d.sights.forEach((s, i) => {
+      const title = wikiD ? wikiD.sights[i] : s.name;
+      wikiImg(title).then(src => {
+        if (!src || current !== snapId) return;
+        const el = document.getElementById(`simg-${i}`);
+        if (!el) return;
+        el.style.backgroundImage = `url('${src}')`;
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+        el.classList.add('loaded');
+      });
+    });
+  } else if (tab === 'weather') {
+    body.innerHTML = `
+      <div class="best-time"><strong>✦ Best Time to Visit</strong><p>${d.bestTime}</p></div>
+      <p class="sec-title">Season by Season</p>
+      <div class="w-grid">${[['🌸 Spring','spring'],['☀️ Summer','summer'],['🍂 Autumn','autumn'],['❄️ Winter','winter']].map(([l,k])=>`
+        <div class="w-card"><div class="w-season">${l}</div>
+        <div class="w-temp">${d.weather[k].temp}</div>
+        <div class="w-desc">${d.weather[k].desc}</div></div>`).join('')}</div>`;
+  } else if (tab === 'food') {
+    body.innerHTML = `<p class="sec-title">Must-Try Dishes & Drinks</p>
+      <div class="food-grid">${d.foods.map(f=>`
+        <div class="food-card"><span class="food-emoji">${f.emoji}</span>
+        <div class="food-name">${f.name}</div>
+        <div class="food-desc">${f.desc}</div></div>`).join('')}</div>`;
+  } else if (tab === 'transport') {
+    body.innerHTML = `<p class="sec-title">Getting There & Around</p>
+      <div class="tr-list">${d.transport.map(t=>`
+        <div class="tr-item"><div class="tr-ico">${t.icon}</div>
+        <div><strong>${t.type}</strong><span>${t.desc}</span></div></div>`).join('')}</div>`;
+  }
+}
+
+
+</script>
+</body>
+</html>
